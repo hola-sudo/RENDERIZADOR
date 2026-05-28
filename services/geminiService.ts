@@ -9,6 +9,28 @@ const safetySettings: SafetySetting[] = [
   { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
 ];
 
+/**
+ * Creates and configures the GoogleGenAI client with key fallback for the AI Studio preview environment
+ * and appropriate telemetry headers.
+ */
+const getGeminiClient = (): GoogleGenAI => {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+  const finalKey = (apiKey && apiKey.trim() !== '') 
+    ? apiKey 
+    : (typeof window !== 'undefined' && (window as any).aistudio)
+      ? 'CHOOSE_API_KEY_FROM_AI_STUDIO_UI'
+      : '';
+      
+  return new GoogleGenAI({
+    apiKey: finalKey,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      }
+    }
+  });
+};
+
 // Utility function for exponential backoff retries
 const retryWithExponentialBackoff = async <T>(
   fn: () => Promise<T>,
@@ -79,7 +101,7 @@ const handleApiResponse = (response: GenerateContentResponse, prompt: string): s
 export const detectSceneElements = async (originalImages: File[], onProgress?: (message: string) => void): Promise<string> => {
   if (originalImages.length === 0) return 'No images provided.';
 
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! || process.env.API_KEY! });
+  const ai = getGeminiClient();
   const imageParts = await Promise.all(originalImages.map(file => fileToPart(file)));
 
   const prompt = `
@@ -197,7 +219,7 @@ export const refinePromptForGeneration = async (
   Generate an extremely precise image generation prompt that imposes strong silhouette preservation (especially for floral structures and any irregular volumes), prevents ALL hallucinations in empty areas, strictly forces the requested lighting change, **maintains high color and texture fidelity (COLOR-GUIDED BY ORIGINAL IMAGE)**, and maximizes the realism of 8K PBR textures, strongly matching the input geometry and composition, including micro-details.
   `;
 
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! || process.env.API_KEY! });
+  const ai = getGeminiClient();
   try {
     const response: GenerateContentResponse = await retryWithExponentialBackoff(
       () => ai.models.generateContent({
@@ -216,7 +238,7 @@ export const refinePromptForGeneration = async (
 };
 
 const generateEventRender = async (originalImage: File, finalPrompt: string, referenceImages: File[], onProgress?: (message: string) => void): Promise<string> => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY! || process.env.API_KEY! });
+  const ai = getGeminiClient();
   const parts = [
     await fileToPart(originalImage),
     ...await Promise.all(referenceImages.map(f => fileToPart(f))),
