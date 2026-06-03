@@ -474,7 +474,7 @@ const App: React.FC = () => {
 
         {uploadedSketchupScene && (
           <div className="mt-8 pt-6 border-t border-indigo-700">
-            <h3 className="text-2xl font-bold text-indigo-100 mb-4">2. Detectar y Describir Elementos Esenciales de la Escena</h3>
+            <h3 className="text-2xl font-bold text-indigo-100 mb-4">2. Detectar y Describir Elementos Esenciales de la Escenaaaa</h3>
             <p className="text-indigo-200 mb-4">
               La IA analizará la escena para extraer el contexto, elementos principales (con materiales y colores percibidos), entorno y zonas cruciales que deben permanecer vacías.
             </p>

@@ -15,6 +15,7 @@ const safetySettings: SafetySetting[] = [
  */
 const getGeminiClient = (): GoogleGenAI => {
   const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+  console.log("fetched key", apiKey)
   const finalKey = (apiKey && apiKey.trim() !== '') 
     ? apiKey 
     : (typeof window !== 'undefined' && (window as any).aistudio)
