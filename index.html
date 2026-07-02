@@ -4,8 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Event Render AI</title>
+    <script>
+      if (localStorage.getItem('theme') === 'dark' ||
+          (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark');
+      }
+    </script>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config = { darkMode: 'class' }</script>
 <script type="importmap">
 {
   "imports": {
@@ -18,8 +25,8 @@
 </script>
 <link rel="stylesheet" href="/index.css">
 </head>
-<body class="bg-gradient-to-br from-purple-900 to-indigo-900 min-h-screen flex flex-col text-white overflow-y-auto">
-    <div id="root" class="flex-grow flex items-center justify-center"></div>
+<body class="bg-stone-100 dark:bg-stone-950 min-h-screen flex flex-col text-stone-900 dark:text-stone-100 overflow-y-auto">
+    <div id="root" class="flex-grow flex flex-col"></div>
     <script type="module" src="/index.tsx"></script>
 </body>
 </html>
