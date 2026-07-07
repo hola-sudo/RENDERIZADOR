@@ -16,20 +16,28 @@ const fileToBase64 = (file: File): Promise<{ data: string; mimeType: string }> =
     reader.readAsDataURL(file);
   });
 
-// Llama al backend adjuntando el token de sesión de Supabase.
-const authedFetch = async (path: string, body: unknown) => {
+// Devuelve el header de autorización con el token de sesión de Supabase.
+const authHeader = async (): Promise<Record<string, string>> => {
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) throw new Error('No hay sesión activa. Inicia sesión de nuevo.');
+  return { Authorization: `Bearer ${session.access_token}` };
+};
 
+// POST autenticado al backend.
+const authedPost = async (path: string, body: unknown) => {
   const res = await fetch(`${API_BASE_URL}${path}`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${session.access_token}`,
-    },
+    headers: { 'Content-Type': 'application/json', ...(await authHeader()) },
     body: JSON.stringify(body),
   });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error ?? `Error ${res.status}`);
+  return json;
+};
 
+// GET autenticado al backend.
+const authedGet = async (path: string) => {
+  const res = await fetch(`${API_BASE_URL}${path}`, { headers: await authHeader() });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error ?? `Error ${res.status}`);
   return json;
@@ -42,7 +50,7 @@ export const detectSceneElements = async (
 ): Promise<string> => {
   onProgress?.('Identificando elementos...');
   const images = await Promise.all(originalImages.map(fileToBase64));
-  const json = await authedFetch('/api/detect-scene', { images });
+  const json = await authedPost('/api/detect-scene', { images });
   return json.description ?? 'No description available.';
 };
 
@@ -66,7 +74,7 @@ export const generateSingleRender = async (
     ]);
 
     onProgress('Generando render fotorrealista...');
-    const json = await authedFetch('/api/render', {
+    const json = await authedPost('/api/render', {
       sketchupImage: sketchup,
       referenceImages: references,
       sceneDescription,
@@ -79,4 +87,20 @@ export const generateSingleRender = async (
   } catch (err: any) {
     return { url: null, error: err.message ?? 'Error desconocido' };
   }
+};
+
+export interface RenderItem {
+  id: string;
+  url: string | null;
+  scene_description: string | null;
+  lighting_type: string | null;
+  color_temperature: string | null;
+  contrast_enhancement: string | null;
+  created_at: string;
+}
+
+/** Trae el historial de renders del usuario. */
+export const listRenders = async (): Promise<RenderItem[]> => {
+  const json = await authedGet('/api/renders');
+  return json.renders ?? [];
 };

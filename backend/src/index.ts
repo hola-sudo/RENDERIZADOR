@@ -1,13 +1,14 @@
 import 'dotenv/config'; // Carga .env en local; en Render las vars vienen del panel.
 import express from 'express';
 import cors from 'cors';
-import { requireAuth, type AuthedRequest } from './auth.js';
+import { requireAuth, createUserClient, type AuthedRequest } from './auth.js';
 import {
   detectSceneElements,
   generateSingleRender,
   LightingType,
   type ImageInput,
 } from './gemini.js';
+import { saveRender, listRenders } from './renders.js';
 
 const app = express();
 
@@ -56,8 +57,32 @@ app.post('/api/render', requireAuth, async (req: AuthedRequest, res) => {
     });
 
     if (result.error) return res.status(502).json({ error: result.error });
-    // TODO: aquí guardaremos el render en Supabase (historial del usuario req.userId).
+
+    // Guarda en el historial. No-fatal: si falla, el render igual se devuelve.
+    try {
+      const client = createUserClient(req.accessToken!);
+      await saveRender(client, req.userId!, result.url!, {
+        sceneDescription: sceneDescription ?? '',
+        lightingType: lightingType ?? 'day',
+        colorTemperature: colorTemperature ?? 'neutral',
+        contrastEnhancement: contrastEnhancement ?? 'natural',
+      });
+    } catch (saveErr) {
+      console.warn('No se pudo guardar el render en el historial:', saveErr);
+    }
+
     res.json({ url: result.url });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message ?? 'Error interno.' });
+  }
+});
+
+// Historial de renders del usuario.
+app.get('/api/renders', requireAuth, async (req: AuthedRequest, res) => {
+  try {
+    const client = createUserClient(req.accessToken!);
+    const renders = await listRenders(client);
+    res.json({ renders });
   } catch (err: any) {
     res.status(500).json({ error: err.message ?? 'Error interno.' });
   }

@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { NextFunction, Request, Response } from 'express';
 
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -10,14 +10,26 @@ if (!supabaseUrl || !supabaseKey) {
 
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Extiende Request para llevar el usuario autenticado.
+// Extiende Request para llevar el usuario autenticado y su token.
 export interface AuthedRequest extends Request {
   userId?: string;
+  accessToken?: string;
+}
+
+/**
+ * Crea un cliente Supabase que actúa CON la identidad del usuario, de modo
+ * que las políticas RLS (auth.uid()) apliquen a sus consultas y a Storage.
+ */
+export function createUserClient(accessToken: string): SupabaseClient {
+  return createClient(supabaseUrl!, supabaseKey!, {
+    global: { headers: { Authorization: `Bearer ${accessToken}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 }
 
 /**
  * Middleware: exige un token de sesión de Supabase válido en el header
- * `Authorization: Bearer <access_token>`. Si es válido, adjunta userId.
+ * `Authorization: Bearer <access_token>`. Si es válido, adjunta userId y token.
  */
 export async function requireAuth(req: AuthedRequest, res: Response, next: NextFunction) {
   const header = req.headers.authorization ?? '';
@@ -33,5 +45,6 @@ export async function requireAuth(req: AuthedRequest, res: Response, next: NextF
   }
 
   req.userId = data.user.id;
+  req.accessToken = token;
   next();
 }

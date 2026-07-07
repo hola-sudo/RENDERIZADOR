@@ -6,6 +6,7 @@ import Navbar from './components/Navbar';
 import Landing from './pages/Landing';
 import EventRender from './pages/EventRender';
 import OtherTool from './pages/OtherTool';
+import History from './pages/History';
 import Login from './pages/Login';
 
 // Decide qué mostrar según el estado de la sesión.
@@ -28,6 +29,7 @@ const Gate: React.FC = () => {
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/render" element={<EventRender />} />
+      <Route path="/history" element={<History />} />
       <Route path="/tool" element={<OtherTool />} />
     </Routes>
   );
