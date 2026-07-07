@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../ThemeContext';
+import { useAuth } from '../AuthContext';
 
 const navLinks = [
   { to: '/', label: 'Inicio' },
@@ -25,6 +26,7 @@ const MoonIcon = () => (
 const Navbar: React.FC = () => {
   const { pathname } = useLocation();
   const { isDark, toggle } = useTheme();
+  const { session, signOut } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -56,6 +58,14 @@ const Navbar: React.FC = () => {
           >
             {isDark ? <SunIcon /> : <MoonIcon />}
           </button>
+          {session && (
+            <button
+              onClick={() => signOut()}
+              className="text-sm font-medium text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition duration-200"
+            >
+              Cerrar sesión
+            </button>
+          )}
         </div>
 
         {/* Mobile: toggle + hamburger */}
@@ -99,6 +109,14 @@ const Navbar: React.FC = () => {
               {label}
             </Link>
           ))}
+          {session && (
+            <button
+              onClick={() => { setMenuOpen(false); signOut(); }}
+              className="text-left text-sm font-medium px-2 text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition duration-200"
+            >
+              Cerrar sesión
+            </button>
+          )}
         </div>
       )}
     </nav>

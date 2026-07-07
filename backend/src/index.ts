@@ -1,3 +1,4 @@
+import 'dotenv/config'; // Carga .env en local; en Render las vars vienen del panel.
 import express from 'express';
 import cors from 'cors';
 import { requireAuth, type AuthedRequest } from './auth.js';

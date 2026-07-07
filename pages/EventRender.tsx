@@ -1,16 +1,7 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { detectSceneElements, generateSingleRender } from '../services/geminiService';
+import React, { useState, useCallback, useRef } from 'react';
+import { detectSceneElements, generateSingleRender } from '../services/apiService';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { LightingType, LightingConfig } from '../types';
-
-declare global {
-  interface Window {
-    aistudio: {
-      hasSelectedApiKey: () => Promise<boolean>;
-      openSelectKey: () => Promise<void>;
-    };
-  }
-}
 
 const STEPS = [
   { id: 1, label: 'Escena' },
@@ -65,34 +56,10 @@ const EventRender: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [currentGenerationProgress, setCurrentGenerationProgress] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [hasApiKey, setHasApiKey] = useState(false);
-  const [showApiKeyPrompt, setShowApiKeyPrompt] = useState(false);
 
   const sketchupFileInputRef = useRef<HTMLInputElement>(null);
   const referenceFileInputRef = useRef<HTMLInputElement>(null);
   const lightingConfigFileInputRef = useRef<HTMLInputElement>(null);
-
-  // ── API key ──────────────────────────────────────────────────────────────
-  const checkApiKey = useCallback(async () => {
-    if (window.aistudio?.hasSelectedApiKey) {
-      const selected = await window.aistudio.hasSelectedApiKey();
-      setHasApiKey(selected);
-      setShowApiKeyPrompt(!selected);
-    } else {
-      setHasApiKey(true);
-      setShowApiKeyPrompt(false);
-    }
-  }, []);
-  useEffect(() => { checkApiKey(); }, [checkApiKey]);
-
-  const handleSelectApiKey = useCallback(async () => {
-    if (window.aistudio?.openSelectKey) {
-      await window.aistudio.openSelectKey();
-      setHasApiKey(true); setShowApiKeyPrompt(false); setError(null);
-    } else {
-      setError('API_KEY no disponible. Configúralo en tu entorno.');
-    }
-  }, []);
 
   // ── Step helpers ─────────────────────────────────────────────────────────
   const stepCompleted = (id: number) => {
@@ -132,7 +99,7 @@ const EventRender: React.FC = () => {
 
   // ── Detect ────────────────────────────────────────────────────────────────
   const handleDetectSceneElements = useCallback(async () => {
-    if (!uploadedSketchupScene || !hasApiKey) { if (!hasApiKey) setShowApiKeyPrompt(true); return; }
+    if (!uploadedSketchupScene) return;
     setIsDetectingScene(true); setError(null); setSceneDescription('');
     setCurrentGenerationProgress('Identificando elementos...');
     try {
@@ -140,10 +107,9 @@ const EventRender: React.FC = () => {
       setSceneDescription(detected); setCurrentGenerationProgress('');
     } catch (err: any) {
       setError(`Error al detectar: ${err.message}`);
-      if (err.message?.includes('Requested entity was not found.')) { setHasApiKey(false); setShowApiKeyPrompt(true); }
       setCurrentGenerationProgress('');
     } finally { setIsDetectingScene(false); }
-  }, [uploadedSketchupScene, hasApiKey]);
+  }, [uploadedSketchupScene]);
 
   // ── References ────────────────────────────────────────────────────────────
   const handleReferenceImagesChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -196,7 +162,7 @@ const EventRender: React.FC = () => {
 
   // ── Generate ──────────────────────────────────────────────────────────────
   const handleGenerateRender = useCallback(async () => {
-    if (!uploadedSketchupScene || !sceneDescription.trim() || !hasApiKey) return;
+    if (!uploadedSketchupScene || !sceneDescription.trim()) return;
     setIsLoading(true); setGeneratedRender(null); setError(null);
     setCurrentGenerationProgress('Iniciando generación...');
     try {
@@ -212,7 +178,7 @@ const EventRender: React.FC = () => {
       setError(`Error al generar: ${err.message}`);
       setCurrentGenerationProgress('');
     } finally { setIsLoading(false); }
-  }, [uploadedSketchupScene, sceneDescription, referenceImages, lightingType, advancedLightingInstructions, colorTemperature, exposureCompensation, contrastEnhancement, hasApiKey]);
+  }, [uploadedSketchupScene, sceneDescription, referenceImages, lightingType, advancedLightingInstructions, colorTemperature, exposureCompensation, contrastEnhancement]);
 
   const handleDownloadImage = useCallback(() => {
     if (!generatedRender?.url) return;
@@ -269,7 +235,7 @@ const EventRender: React.FC = () => {
               <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Detectar Elementos de la Escena</h2>
               <p className="text-stone-500 dark:text-stone-400 text-sm">La IA analizará materiales, colores, entorno y zonas vacías. Puedes editar el resultado.</p>
             </div>
-            <button onClick={handleDetectSceneElements} disabled={isDetectingScene || !hasApiKey || isLoading}
+            <button onClick={handleDetectSceneElements} disabled={isDetectingScene || isLoading}
               className="w-full py-3 px-5 rounded-lg bg-stone-700 hover:bg-stone-600 text-white font-semibold text-sm transition disabled:opacity-40 disabled:cursor-not-allowed">
               {isDetectingScene ? 'Detectando...' : 'Detectar automáticamente'}
             </button>
@@ -372,18 +338,12 @@ const EventRender: React.FC = () => {
               <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Generar Render Fotorrealista</h2>
               <p className="text-stone-500 dark:text-stone-400 text-sm">Todo listo. Genera el render con la configuración actual.</p>
             </div>
-            {showApiKeyPrompt && (
-              <div className="bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-600 rounded-lg p-4 space-y-2">
-                <p className="text-stone-800 dark:text-stone-200 text-sm font-semibold">Se requiere una clave API de GCP de pago.</p>
-                <button onClick={handleSelectApiKey} className="py-2 px-4 bg-stone-700 hover:bg-stone-600 text-white text-sm font-semibold rounded-lg transition">Seleccionar clave API</button>
-              </div>
-            )}
             <div className="bg-stone-100 dark:bg-stone-800 rounded-lg p-4 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-stone-500">Escena</span><span className="text-stone-700 dark:text-stone-300 truncate ml-4 max-w-[60%] text-right">{uploadedSketchupScene?.name ?? '—'}</span></div>
               <div className="flex justify-between"><span className="text-stone-500">Iluminación</span><span className="text-stone-700 dark:text-stone-300 capitalize">{lightingType} · {colorTemperature}</span></div>
               <div className="flex justify-between"><span className="text-stone-500">Referencias</span><span className="text-stone-700 dark:text-stone-300">{referenceImages.length > 0 ? `${referenceImages.length} imagen${referenceImages.length > 1 ? 'es' : ''}` : 'Ninguna'}</span></div>
             </div>
-            <button onClick={handleGenerateRender} disabled={isLoading || !uploadedSketchupScene || !sceneDescription.trim() || !hasApiKey}
+            <button onClick={handleGenerateRender} disabled={isLoading || !uploadedSketchupScene || !sceneDescription.trim()}
               className="w-full py-4 rounded-lg bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 text-base font-bold hover:bg-stone-700 dark:hover:bg-stone-300 transition disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 dark:disabled:bg-stone-700 dark:disabled:text-stone-500">
               {isLoading ? 'Generando render...' : 'Generar render'}
             </button>

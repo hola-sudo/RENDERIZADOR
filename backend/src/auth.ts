@@ -2,13 +2,13 @@ import { createClient } from '@supabase/supabase-js';
 import type { NextFunction, Request, Response } from 'express';
 
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabaseKey = process.env.SUPABASE_PUBLISHABLE_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Faltan SUPABASE_URL o SUPABASE_ANON_KEY en las variables de entorno.');
+if (!supabaseUrl || !supabaseKey) {
+  throw new Error('Faltan SUPABASE_URL o SUPABASE_PUBLISHABLE_KEY en las variables de entorno.');
 }
 
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Extiende Request para llevar el usuario autenticado.
 export interface AuthedRequest extends Request {
