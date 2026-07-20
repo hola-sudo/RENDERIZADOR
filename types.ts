@@ -10,6 +10,15 @@ export enum LightingType {
   Night = 'night',
 }
 
+// Proveedor del modelo que genera el render final (Rol B).
+export type ImageProvider = 'gemini' | 'gpt' | 'flux';
+
+export const IMAGE_PROVIDER_OPTIONS: { value: ImageProvider; label: string }[] = [
+  { value: 'gemini', label: 'Gemini — nativo, rápido y buena fidelidad geométrica' },
+  { value: 'gpt', label: 'GPT (gpt-image-1) — de OpenAI, buen seguimiento de instrucciones' },
+  { value: 'flux', label: 'FLUX Kontext (fal.ai) — edición multi-imagen preservando la escena' },
+];
+
 export interface ImagePart {
   inlineData: {
     data: string;

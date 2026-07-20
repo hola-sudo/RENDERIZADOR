@@ -1,11 +1,11 @@
 import {
   GoogleGenAI,
-  type GenerateContentResponse,
   type Part,
   type SafetySetting,
   HarmCategory,
   HarmBlockThreshold,
 } from '@google/genai';
+import { generateRenderImage, type ImageProvider } from './imageProviders.js';
 
 // Tipos del dominio (equivalentes a los del frontend).
 export enum LightingType {
@@ -19,7 +19,7 @@ export interface ImageInput {
   mimeType: string;
 }
 
-const safetySettings: SafetySetting[] = [
+export const safetySettings: SafetySetting[] = [
   { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
   { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
   { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE },
@@ -34,15 +34,11 @@ const getGeminiClient = (): GoogleGenAI => {
   return new GoogleGenAI({ apiKey });
 };
 
-const imageToPart = (img: ImageInput): Part => ({
+export const imageToPart = (img: ImageInput): Part => ({
   inlineData: { data: img.data, mimeType: img.mimeType },
 });
 
-interface ImagePart {
-  inlineData: { data: string; mimeType: string };
-}
-
-const retryWithExponentialBackoff = async <T>(
+export const retryWithExponentialBackoff = async <T>(
   fn: () => Promise<T>,
   maxRetries = 5,
   initialDelayMs = 1000,
@@ -64,20 +60,6 @@ const retryWithExponentialBackoff = async <T>(
     }
   }
   throw new Error('Maximum retries exceeded.');
-};
-
-const handleApiResponse = (response: GenerateContentResponse): string => {
-  const imagePart = response.candidates?.[0]?.content?.parts?.find(
-    (part): part is ImagePart => (part as ImagePart).inlineData !== undefined,
-  );
-  if (imagePart?.inlineData) {
-    return `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`;
-  }
-  const textPart = response.candidates?.[0]?.content?.parts?.find(
-    (part) => typeof (part as { text?: string }).text === 'string',
-  );
-  const textOutput = (textPart as { text?: string })?.text;
-  throw new Error(`No se encontró imagen. ${textOutput ? `Mensaje del modelo: "${textOutput}"` : ''}`);
 };
 
 /** Analiza la imagen de SketchUp y devuelve una descripción de la escena. */
@@ -195,36 +177,6 @@ const refinePromptForGeneration = async (
   return response.text?.trim() || 'Prompt error.';
 };
 
-const generateEventRender = async (
-  originalImage: ImageInput,
-  finalPrompt: string,
-  referenceImages: ImageInput[],
-): Promise<string> => {
-  const ai = getGeminiClient();
-  const parts: Part[] = [
-    imageToPart(originalImage),
-    ...referenceImages.map(imageToPart),
-    { text: finalPrompt },
-  ];
-
-  const response = await retryWithExponentialBackoff(
-    () =>
-      ai.models.generateContent({
-        model: 'gemini-3.1-flash-image-preview',
-        contents: { parts },
-        config: {
-          systemInstruction:
-            'You are a professional architectural and event rendering engine. Transform SketchUp screenshots into high-fidelity photorealistic 2K renders, following user instructions on materials, lighting, and textures while strictly maintaining the geometric silhouettes of the original input. Do not add or remove physical objects.',
-          safetySettings,
-          imageConfig: { aspectRatio: '16:9', imageSize: '2K' },
-        },
-      }),
-    5,
-    5000,
-  );
-  return handleApiResponse(response);
-};
-
 export interface RenderParams {
   sketchupImage: ImageInput;
   referenceImages: ImageInput[];
@@ -232,6 +184,7 @@ export interface RenderParams {
   lightingType: LightingType;
   colorTemperature: string;
   contrastEnhancement: string;
+  provider: ImageProvider;
 }
 
 /** Orquesta el render completo: refina el prompt y genera la imagen. */
@@ -252,11 +205,12 @@ export const generateSingleRender = async (
     const strictLock =
       '\n\nCRITICAL: Maintain 100% geometric fidelity to the SketchUp screenshot. Apply ultra-photorealistic 8K PBR textures only to existing surfaces. Ensure the lighting transformation is absolute. No new objects. This output MUST be a high-resolution 2K image.';
 
-    const imageUrl = await generateEventRender(
-      params.sketchupImage,
-      refinedPrompt + strictLock,
-      params.referenceImages,
-    );
+    const imageUrl = await generateRenderImage({
+      provider: params.provider,
+      sketchupImage: params.sketchupImage,
+      referenceImages: params.referenceImages,
+      finalPrompt: refinedPrompt + strictLock,
+    });
     return { url: imageUrl, error: null };
   } catch (error: any) {
     return { url: null, error: error.message || 'Error desconocido' };

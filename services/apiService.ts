@@ -1,5 +1,5 @@
 import { supabase, API_BASE_URL } from './supabaseClient';
-import { LightingType } from '../types';
+import { LightingType, type ImageProvider } from '../types';
 
 // Convierte un File a base64 SIN el prefijo "data:...;base64," (lo que espera el backend).
 const fileToBase64 = (file: File): Promise<{ data: string; mimeType: string }> =>
@@ -64,6 +64,7 @@ export const generateSingleRender = async (
   colorTemperature: string,
   _exposureCompensation: string,
   contrastEnhancement: string,
+  provider: ImageProvider,
   onProgress: (message: string) => void,
 ): Promise<{ url: string | null; error: string | null }> => {
   try {
@@ -81,6 +82,7 @@ export const generateSingleRender = async (
       lightingType,
       colorTemperature,
       contrastEnhancement,
+      provider,
     });
 
     return { url: json.url ?? null, error: null };

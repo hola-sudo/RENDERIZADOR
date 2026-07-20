@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { detectSceneElements, generateSingleRender } from '../services/apiService';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { LightingType, LightingConfig } from '../types';
+import { LightingType, LightingConfig, IMAGE_PROVIDER_OPTIONS, type ImageProvider } from '../types';
 
 const STEPS = [
   { id: 1, label: 'Escena' },
@@ -51,6 +51,7 @@ const EventRender: React.FC = () => {
   const [exposureCompensation, setExposureCompensation] = useState<LightingConfig['exposureCompensation']>('standard');
   const [contrastEnhancement, setContrastEnhancement] = useState<LightingConfig['contrastEnhancement']>('natural');
   const [advancedLightingInstructions, setAdvancedLightingInstructions] = useState('');
+  const [imageProvider, setImageProvider] = useState<ImageProvider>('gemini');
 
   const [generatedRender, setGeneratedRender] = useState<{ url: string | null; error: string | null } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -169,7 +170,7 @@ const EventRender: React.FC = () => {
       const result = await generateSingleRender(
         uploadedSketchupScene, sceneDescription, referenceImages, lightingType,
         advancedLightingInstructions, colorTemperature, exposureCompensation, contrastEnhancement,
-        setCurrentGenerationProgress
+        imageProvider, setCurrentGenerationProgress
       );
       setGeneratedRender(result);
       if (result.url) setShowRender(true);
@@ -178,7 +179,7 @@ const EventRender: React.FC = () => {
       setError(`Error al generar: ${err.message}`);
       setCurrentGenerationProgress('');
     } finally { setIsLoading(false); }
-  }, [uploadedSketchupScene, sceneDescription, referenceImages, lightingType, advancedLightingInstructions, colorTemperature, exposureCompensation, contrastEnhancement]);
+  }, [uploadedSketchupScene, sceneDescription, referenceImages, lightingType, advancedLightingInstructions, colorTemperature, exposureCompensation, contrastEnhancement, imageProvider]);
 
   const handleDownloadImage = useCallback(() => {
     if (!generatedRender?.url) return;
@@ -338,9 +339,18 @@ const EventRender: React.FC = () => {
               <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Generar Render Fotorrealista</h2>
               <p className="text-stone-500 dark:text-stone-400 text-sm">Todo listo. Genera el render con la configuración actual.</p>
             </div>
+            <div>
+              <label htmlFor="provider" className="block text-xs font-semibold text-stone-600 dark:text-stone-400 uppercase tracking-wider mb-1.5">Modelo de render</label>
+              <select id="provider" value={imageProvider} onChange={(e) => setImageProvider(e.target.value as ImageProvider)} disabled={isLoading}
+                className="w-full p-2.5 rounded-lg bg-white dark:bg-stone-950 border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 text-sm focus:ring-2 focus:ring-stone-400 outline-none transition disabled:opacity-40">
+                {IMAGE_PROVIDER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+              <p className="mt-1.5 text-xs text-stone-400">El análisis y el prompt siempre usan Gemini; aquí eliges qué modelo genera la imagen final.</p>
+            </div>
             <div className="bg-stone-100 dark:bg-stone-800 rounded-lg p-4 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-stone-500">Escena</span><span className="text-stone-700 dark:text-stone-300 truncate ml-4 max-w-[60%] text-right">{uploadedSketchupScene?.name ?? '—'}</span></div>
               <div className="flex justify-between"><span className="text-stone-500">Iluminación</span><span className="text-stone-700 dark:text-stone-300 capitalize">{lightingType} · {colorTemperature}</span></div>
+              <div className="flex justify-between"><span className="text-stone-500">Modelo</span><span className="text-stone-700 dark:text-stone-300 uppercase">{imageProvider}</span></div>
               <div className="flex justify-between"><span className="text-stone-500">Referencias</span><span className="text-stone-700 dark:text-stone-300">{referenceImages.length > 0 ? `${referenceImages.length} imagen${referenceImages.length > 1 ? 'es' : ''}` : 'Ninguna'}</span></div>
             </div>
             <button onClick={handleGenerateRender} disabled={isLoading || !uploadedSketchupScene || !sceneDescription.trim()}
