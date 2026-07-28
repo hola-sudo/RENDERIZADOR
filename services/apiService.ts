@@ -54,6 +54,14 @@ export const detectSceneElements = async (
   return json.description ?? 'No description available.';
 };
 
+// Ajustes opcionales del build con ControlNet (flux-max).
+export interface ControlNetOptions {
+  strength?: number;
+  controlStrength?: number;
+  ipScale?: number;
+  seed?: number;
+}
+
 /** Genera el render fotorrealista vía backend. */
 export const generateSingleRender = async (
   sketchupImage: File,
@@ -65,8 +73,9 @@ export const generateSingleRender = async (
   _exposureCompensation: string,
   contrastEnhancement: string,
   provider: ImageProvider,
+  controlNet: ControlNetOptions,
   onProgress: (message: string) => void,
-): Promise<{ url: string | null; error: string | null }> => {
+): Promise<{ url: string | null; error: string | null; seed?: number }> => {
   try {
     onProgress('Preparando imágenes...');
     const [sketchup, references] = await Promise.all([
@@ -83,9 +92,13 @@ export const generateSingleRender = async (
       colorTemperature,
       contrastEnhancement,
       provider,
+      strength: controlNet.strength,
+      controlStrength: controlNet.controlStrength,
+      ipScale: controlNet.ipScale,
+      seed: controlNet.seed,
     });
 
-    return { url: json.url ?? null, error: null };
+    return { url: json.url ?? null, error: null, seed: json.seed };
   } catch (err: any) {
     return { url: null, error: err.message ?? 'Error desconocido' };
   }

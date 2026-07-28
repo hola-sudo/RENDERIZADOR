@@ -185,12 +185,17 @@ export interface RenderParams {
   colorTemperature: string;
   contrastEnhancement: string;
   provider: ImageProvider;
+  // Solo aplican a flux-max (ControlNet). Opcionales.
+  strength?: number;
+  controlStrength?: number;
+  ipScale?: number;
+  seed?: number;
 }
 
 /** Orquesta el render completo: refina el prompt y genera la imagen. */
 export const generateSingleRender = async (
   params: RenderParams,
-): Promise<{ url: string | null; error: string | null }> => {
+): Promise<{ url: string | null; error: string | null; seed?: number }> => {
   if (!params.sceneDescription.trim()) return { url: null, error: 'Falta descripción.' };
 
   try {
@@ -205,13 +210,17 @@ export const generateSingleRender = async (
     const strictLock =
       '\n\nCRITICAL: Maintain 100% geometric fidelity to the SketchUp screenshot. Apply ultra-photorealistic 8K PBR textures only to existing surfaces. Ensure the lighting transformation is absolute. No new objects. This output MUST be a high-resolution 2K image.';
 
-    const imageUrl = await generateRenderImage({
+    const result = await generateRenderImage({
       provider: params.provider,
       sketchupImage: params.sketchupImage,
       referenceImages: params.referenceImages,
       finalPrompt: refinedPrompt + strictLock,
+      strength: params.strength,
+      controlStrength: params.controlStrength,
+      ipScale: params.ipScale,
+      seed: params.seed,
     });
-    return { url: imageUrl, error: null };
+    return { url: result.url, error: null, seed: result.seed };
   } catch (error: any) {
     return { url: null, error: error.message || 'Error desconocido' };
   }
