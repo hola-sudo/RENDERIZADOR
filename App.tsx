@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './AuthContext';
 import Navbar from './components/Navbar';
 import Landing from './pages/Landing';
 import EventRender from './pages/EventRender';
+import VideoTransition from './pages/VideoTransition';
 import OtherTool from './pages/OtherTool';
 import History from './pages/History';
 import Login from './pages/Login';
@@ -29,6 +30,7 @@ const Gate: React.FC = () => {
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/render" element={<EventRender />} />
+      <Route path="/video-transition" element={<VideoTransition />} />
       <Route path="/history" element={<History />} />
       <Route path="/tool" element={<OtherTool />} />
     </Routes>

@@ -9,10 +9,10 @@ const tools = [
     badge: 'Available',
   },
   {
-    to: '/tool',
-    title: 'Other Tool',
-    description: 'Próximamente. Una nueva herramienta para ampliar tu flujo de trabajo creativo.',
-    badge: 'Coming Soon',
+    to: '/video-transition',
+    title: 'Video Transition',
+    description: 'Crea transiciones de video profesionales con inteligencia artificial. Proporciona un start frame y un end frame.',
+    badge: 'Available',
   },
 ];
 
