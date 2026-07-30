@@ -9,7 +9,7 @@ import { promises as fs } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { GoogleGenAI, type GenerateVideosOperation } from '@google/genai';
+import { GoogleGenAI, GenerateVideosOperation } from '@google/genai';
 import { type ImageInput } from './gemini.js';
 
 export type VideoProvider = 'veo';
@@ -60,10 +60,13 @@ export interface CheckVideoResult {
 export const checkVideoGeneration = async (operationName: string): Promise<CheckVideoResult> => {
   const ai = getGeminiClient();
 
-  // El SDK solo necesita el `name` para reconstruir la request de status, así
-  // que esto funciona aunque el start y el check ocurran en requests HTTP distintas.
+  // El SDK llama internamente a `operation._fromAPIResponse(...)` (método del
+  // prototipo de GenerateVideosOperation) para reconstruir el resultado, así
+  // que no basta un objeto plano con `name` — hace falta una instancia real
+  // de la clase. Solo necesita el `name`, por eso esto funciona aunque el
+  // start y el check ocurran en requests HTTP distintas (stateless).
   const operation = await ai.operations.getVideosOperation({
-    operation: { name: operationName } as unknown as GenerateVideosOperation,
+    operation: Object.assign(new GenerateVideosOperation(), { name: operationName }),
   });
 
   if (!operation.done) return { done: false };
