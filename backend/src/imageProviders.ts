@@ -30,7 +30,7 @@ export interface GenerateImageParams {
   referenceImages: ImageInput[];
   finalPrompt: string;
   // Solo aplican a flux-max (el build con ControlNet):
-  strength?: number;        // img2img denoise: 0=idéntico al SketchUp, 1=repinta del todo (default 0.75).
+  strength?: number;        // img2img denoise: 0=idéntico al SketchUp, 1=repinta del todo (default 0.85).
   controlStrength?: number; // sobre-escribe la escala de ControlNet para canny y depth (default 0.7/0.8).
   ipScale?: number;         // fuerza del IP-Adapter sobre las referencias (default 0.7).
   seed?: number;            // fija el resultado para reproducibilidad.
@@ -215,13 +215,13 @@ const generateWithFluxMax = async (p: GenerateImageParams): Promise<RenderResult
           control_image_url: cannyMap,
           control_mode: 'canny',
           conditioning_scale: p.controlStrength ?? 0.7,
-          end_percentage: 0.9,
+          end_percentage: 0.8,
         },
         {
           control_image_url: depthMap,
           control_mode: 'depth',
           conditioning_scale: p.controlStrength ?? 0.8,
-          end_percentage: 0.9,
+          end_percentage: 0.8,
         },
       ],
     },
@@ -243,11 +243,11 @@ const generateWithFluxMax = async (p: GenerateImageParams): Promise<RenderResult
   const body: Record<string, unknown> = {
     prompt: `${SYSTEM_INSTRUCTION}\n\n${p.finalPrompt}`,
     image_url: baseImage, // base img2img (conserva la paleta de color del SketchUp)
-    strength: p.strength ?? 0.75,
+    strength: p.strength ?? 0.85,
     controlnet_unions: controlnetUnions,
     ip_adapters: ipAdapters,
     num_inference_steps: 28,
-    guidance_scale: 3.5,
+    guidance_scale: 5,
     image_size: 'landscape_16_9',
     output_format: 'png',
     num_images: 1,

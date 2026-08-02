@@ -53,7 +53,7 @@ const EventRender: React.FC = () => {
   const [advancedLightingInstructions, setAdvancedLightingInstructions] = useState('');
   const [imageProvider, setImageProvider] = useState<ImageProvider>('gemini');
   // Ajustes de ControlNet (solo se usan si el proveedor es flux-max).
-  const [strength, setStrength] = useState(0.75);
+  const [strength, setStrength] = useState(0.85);
   const [controlStrength, setControlStrength] = useState(0.75);
   const [ipScale, setIpScale] = useState(0.7);
   const [seedInput, setSeedInput] = useState('');
