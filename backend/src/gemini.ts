@@ -143,7 +143,7 @@ const refinePromptForGeneration = async (
   4. Fill that exact silhouette with high-quality photorealistic tiny flowers and leaves (PBR texture), without changing the outer boundary.
 
   ⛔️ NEGATIVE CONSTRAINTS:
-  - NO HALLUCINATIONS: DO NOT add tables, chairs, decorations, furniture, or any new object into empty spaces. "ZONAS VACÍAS" must stay empty with realistic textures.
+  - NO HALLUCINATIONS: DO NOT add tables, chairs, decorations, furniture, flowers, floral arrangements, bouquets, plants, or any new object into empty spaces. "ZONAS VACÍAS" must stay empty with realistic textures. This applies especially to floors, pavement, and entrances: do not place floral/plant props there unless an equivalent green blob/mass already exists in the input image.
   - NO GEOMETRY CHANGES: No zoom, pan, crop, rotate, resize, or reposition. Maintain a very strong visual match between input and output geometry.
   - NO RE-COMPOSITION: Do not "improve" the framing or layout beyond photorealistic enhancement.
   - NO CARTOONISH/PLASTIC LOOKS: Apply PBR materials realistically.
