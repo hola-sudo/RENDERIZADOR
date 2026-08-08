@@ -8,7 +8,6 @@ import {
   LightingType,
   type ImageInput,
 } from './gemini.js';
-import { IMAGE_PROVIDERS, type ImageProvider } from './imageProviders.js';
 import { saveRender, listRenders } from './renders.js';
 import { generateVideoTransition, checkVideoGeneration } from './videoProviders.js';
 import { saveVideoRender, listVideoRenders } from './videoRenders.js';
@@ -43,18 +42,12 @@ app.post('/api/detect-scene', requireAuth, async (req: AuthedRequest, res) => {
 // Genera el render fotorrealista final.
 app.post('/api/render', requireAuth, async (req: AuthedRequest, res) => {
   try {
-    const { sketchupImage, referenceImages, sceneDescription, lightingType, colorTemperature, contrastEnhancement, provider, strength, controlStrength, ipScale, seed } =
+    const { sketchupImage, referenceImages, sceneDescription, lightingType, colorTemperature, contrastEnhancement } =
       req.body ?? {};
 
     if (!sketchupImage?.data) {
       return res.status(400).json({ error: 'Falta la imagen de SketchUp.' });
     }
-
-    const selectedProvider: ImageProvider = IMAGE_PROVIDERS.includes(provider) ? provider : 'gemini';
-
-    // Solo se pasan si son números válidos; si no, cada proveedor usa sus defaults.
-    const num = (v: unknown): number | undefined =>
-      typeof v === 'number' && Number.isFinite(v) ? v : undefined;
 
     const result = await generateSingleRender({
       sketchupImage,
@@ -63,11 +56,6 @@ app.post('/api/render', requireAuth, async (req: AuthedRequest, res) => {
       lightingType: (lightingType as LightingType) ?? LightingType.Day,
       colorTemperature: colorTemperature ?? 'neutral',
       contrastEnhancement: contrastEnhancement ?? 'natural',
-      provider: selectedProvider,
-      strength: num(strength),
-      controlStrength: num(controlStrength),
-      ipScale: num(ipScale),
-      seed: num(seed),
     });
 
     if (result.error) return res.status(502).json({ error: result.error });
@@ -85,7 +73,7 @@ app.post('/api/render', requireAuth, async (req: AuthedRequest, res) => {
       console.warn('No se pudo guardar el render en el historial:', saveErr);
     }
 
-    res.json({ url: result.url, seed: result.seed });
+    res.json({ url: result.url });
   } catch (err: any) {
     res.status(500).json({ error: err.message ?? 'Error interno.' });
   }

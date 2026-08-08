@@ -89,7 +89,7 @@ export const checkVideoGeneration = async (operationName: string): Promise<Check
   }
 };
 
-// ── Dispatcher (hoy solo 'veo'; deja el hueco listo para 'film' vía fal.ai) ──
+// ── Dispatcher (hoy solo 'veo'; deja el hueco listo para otros motores) ──
 export const generateVideoTransition = async (
   provider: VideoProvider,
   params: StartVideoParams,

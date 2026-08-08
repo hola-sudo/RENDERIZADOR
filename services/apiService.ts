@@ -1,5 +1,5 @@
 import { supabase, API_BASE_URL } from './supabaseClient';
-import { LightingType, type ImageProvider, type CameraMovement, type VideoRenderItem } from '../types';
+import { LightingType, type CameraMovement, type VideoRenderItem } from '../types';
 
 // Convierte un File a base64 SIN el prefijo "data:...;base64," (lo que espera el backend).
 const fileToBase64 = (file: File): Promise<{ data: string; mimeType: string }> =>
@@ -54,15 +54,7 @@ export const detectSceneElements = async (
   return json.description ?? 'No description available.';
 };
 
-// Ajustes opcionales del build con ControlNet (flux-max).
-export interface ControlNetOptions {
-  strength?: number;
-  controlStrength?: number;
-  ipScale?: number;
-  seed?: number;
-}
-
-/** Genera el render fotorrealista vía backend. */
+/** Genera el render fotorrealista vía backend (Gemini). */
 export const generateSingleRender = async (
   sketchupImage: File,
   sceneDescription: string,
@@ -72,10 +64,8 @@ export const generateSingleRender = async (
   colorTemperature: string,
   _exposureCompensation: string,
   contrastEnhancement: string,
-  provider: ImageProvider,
-  controlNet: ControlNetOptions,
   onProgress: (message: string) => void,
-): Promise<{ url: string | null; error: string | null; seed?: number }> => {
+): Promise<{ url: string | null; error: string | null }> => {
   try {
     onProgress('Preparando imágenes...');
     const [sketchup, references] = await Promise.all([
@@ -91,14 +81,9 @@ export const generateSingleRender = async (
       lightingType,
       colorTemperature,
       contrastEnhancement,
-      provider,
-      strength: controlNet.strength,
-      controlStrength: controlNet.controlStrength,
-      ipScale: controlNet.ipScale,
-      seed: controlNet.seed,
     });
 
-    return { url: json.url ?? null, error: null, seed: json.seed };
+    return { url: json.url ?? null, error: null };
   } catch (err: any) {
     return { url: null, error: err.message ?? 'Error desconocido' };
   }

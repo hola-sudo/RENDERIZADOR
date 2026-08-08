@@ -10,19 +10,6 @@ export enum LightingType {
   Night = 'night',
 }
 
-// Proveedor del modelo que genera el render final (Rol B).
-export type ImageProvider = 'gemini' | 'gpt' | 'flux' | 'flux-max';
-
-export const IMAGE_PROVIDER_OPTIONS: { value: ImageProvider; label: string }[] = [
-  { value: 'gemini', label: 'Gemini — nativo, rápido y buena fidelidad geométrica' },
-  { value: 'gpt', label: 'GPT (gpt-image-1) — de OpenAI, buen seguimiento de instrucciones' },
-  { value: 'flux', label: 'FLUX Kontext (fal.ai) — edición multi-imagen preservando la escena' },
-  { value: 'flux-max', label: 'FLUX Avanzado — ControlNet (Canny+Depth) + IP-Adapter, geometría anclada' },
-];
-
-// Proveedores que usan ControlNet (exponen strength / control / seed en la UI).
-export const CONTROLNET_PROVIDERS: ImageProvider[] = ['flux-max'];
-
 // Movimiento de cámara para la transición de video (Start Frame -> End Frame).
 export type CameraMovement = 'dolly_in' | 'dolly_out' | 'zoom_in' | 'zoom_out' | 'pan_left' | 'pan_right';
 

@@ -5,7 +5,7 @@ import {
   HarmCategory,
   HarmBlockThreshold,
 } from '@google/genai';
-import { generateRenderImage, type ImageProvider } from './imageProviders.js';
+import { generateRenderImage } from './imageProviders.js';
 
 // Tipos del dominio (equivalentes a los del frontend).
 export enum LightingType {
@@ -77,7 +77,7 @@ export const detectSceneElements = async (originalImages: ImageInput[]): Promise
   - **Objetos Principales y Atributos:** [Identifica cada objeto distintivo y describe su forma/silueta, material predominante, textura percibida y color observado. Mantén la adherencia geométrica exacta a la forma y volumen del SketchUp.]
   - **Elementos Naturales/Entorno:** [Suelo, paredes, vegetación u otros elementos del entorno.]
   - **Zonas Vacías/Restringidas:** [Áreas que deben permanecer absolutamente vacías, describiendo sus características visuales y materiales.]
-  - **Iluminación Base Observada:** [Descripción sencilla de la iluminación inicial en el SketchUp.]
+  - **Masas Florales:** [Responde EXACTAMENTE "SÍ" o "NO". Responde "SÍ" únicamente si existen formas verdes irregulares tipo "blob" o masas sin detalle que claramente representen ARREGLOS FLORALES O FOLLAJE DECORATIVO pendientes de modelar. Responde "NO" si la vegetación visible son solo árboles, arbustos, pasto o plantas de entorno ya definidos, o si no hay vegetación.]
 
   Reglas Absolutas para tu OUTPUT:
   - Sé CONCISO pero INFORMATIVO en cada punto.
@@ -126,24 +126,43 @@ const refinePromptForGeneration = async (
       break;
   }
 
-  const referenceInstruction = hasReferenceImages
-    ? 'REFERENCES: Use attached images ONLY for FLOWER/LEAF TEXTURE and MATERIAL PROPERTIES. Do NOT copy the shape of the arrangement or any object from the references. Adhere strictly to the SketchUp blob/volume shape.'
-    : '';
+  // La BLOB RULE instruye ACTIVAMENTE rellenar masas verdes con flores. Si la escena
+  // no tiene arreglos florales por modelar, inyectarla hace que el modelo invente
+  // vegetación donde no la hay. Solo se aplica si el detector marcó "Masas Florales: SÍ".
+  // Ojo: \b no sirve tras "í" (las vocales acentuadas no son \w en JS), y sin límite
+  // de palabra un "Sin arreglos florales" haría match falso. De ahí el lookahead.
+  const hasFloralMasses = /masas\s+florales[^\n]*?:[\s*]*s[íi](?![a-záéíóúñ])/i.test(
+    sceneElementsDescription,
+  );
+
+  const referenceInstruction = !hasReferenceImages
+    ? ''
+    : hasFloralMasses
+      ? 'REFERENCES: Use attached images ONLY for FLOWER/LEAF TEXTURE and MATERIAL PROPERTIES. Do NOT copy the shape of the arrangement or any object from the references. Adhere strictly to the SketchUp blob/volume shape.'
+      : 'REFERENCES: Use attached images ONLY for MATERIAL PROPERTIES and TEXTURE QUALITY. Do NOT copy the shape, layout, or any object from the references. Adhere strictly to the SketchUp geometry.';
+
+  const blobRule = hasFloralMasses
+    ? `### THE "BLOB" RULE (CRITICAL) ###
+  The input image contains irregular green shapes/masses (floral structures, foliage).
+  1. DO NOT turn them into arches.
+  2. DO NOT turn them into standard bouquets or symmetrical arrangements.
+  3. YOU MUST RESPECT THE EXACT IRREGULAR SILHOUETTE and VOLUMETRIC SHAPE of the green mass, 1:1.
+  4. Fill that exact silhouette with high-quality photorealistic tiny flowers and leaves (PBR texture), without changing the outer boundary.`
+    : `### VEGETATION RULE (CRITICAL) ###
+  This scene has NO floral arrangements pending to be modeled.
+  1. Render ONLY the vegetation that already exists in the input image (trees, shrubs, grass, potted plants).
+  2. Respect its exact silhouette and volume 1:1 — do not expand, densify, or extend it.
+  3. DO NOT add flowers, floral arrangements, bouquets, hedges, or any new plant anywhere in the scene.`;
 
   const refinementPrompt = `
   ### SYSTEM ROLE: HIGH-FIDELITY PHOTOREALISTIC RENDERING ENGINE (VISUAL ADHERENCE & REALISM BOT) ###
 
   Your ONLY task is to apply **Ultra-Photorealistic 8K PBR Textures and sophisticated lighting** to the input image. You **MUST NOT alter the existing geometry, add new objects, or change the composition or camera perspective.** The input image is your primary visual guide for depth, shape, object placement, original color palette, and fine textural details.
 
-  ### THE "BLOB" RULE (CRITICAL) ###
-  The input image contains irregular green shapes/masses (floral structures, foliage).
-  1. DO NOT turn them into arches.
-  2. DO NOT turn them into standard bouquets or symmetrical arrangements.
-  3. YOU MUST RESPECT THE EXACT IRREGULAR SILHOUETTE and VOLUMETRIC SHAPE of the green mass, 1:1.
-  4. Fill that exact silhouette with high-quality photorealistic tiny flowers and leaves (PBR texture), without changing the outer boundary.
+  ${blobRule}
 
   ⛔️ NEGATIVE CONSTRAINTS:
-  - NO HALLUCINATIONS: DO NOT add tables, chairs, decorations, furniture, flowers, floral arrangements, bouquets, plants, or any new object into empty spaces. "ZONAS VACÍAS" must stay empty with realistic textures. This applies especially to floors, pavement, and entrances: do not place floral/plant props there unless an equivalent green blob/mass already exists in the input image.
+  - NO HALLUCINATIONS: DO NOT add tables, chairs, decorations, furniture, or any new object into empty spaces. "ZONAS VACÍAS" must stay empty with realistic textures. This applies especially to floors, pavement, and entrances.
   - NO GEOMETRY CHANGES: No zoom, pan, crop, rotate, resize, or reposition. Maintain a very strong visual match between input and output geometry.
   - NO RE-COMPOSITION: Do not "improve" the framing or layout beyond photorealistic enhancement.
   - NO CARTOONISH/PLASTIC LOOKS: Apply PBR materials realistically.
@@ -184,18 +203,12 @@ export interface RenderParams {
   lightingType: LightingType;
   colorTemperature: string;
   contrastEnhancement: string;
-  provider: ImageProvider;
-  // Solo aplican a flux-max (ControlNet). Opcionales.
-  strength?: number;
-  controlStrength?: number;
-  ipScale?: number;
-  seed?: number;
 }
 
 /** Orquesta el render completo: refina el prompt y genera la imagen. */
 export const generateSingleRender = async (
   params: RenderParams,
-): Promise<{ url: string | null; error: string | null; seed?: number }> => {
+): Promise<{ url: string | null; error: string | null }> => {
   if (!params.sceneDescription.trim()) return { url: null, error: 'Falta descripción.' };
 
   try {
@@ -211,16 +224,11 @@ export const generateSingleRender = async (
       '\n\nCRITICAL: Maintain 100% geometric fidelity to the SketchUp screenshot. Apply ultra-photorealistic 8K PBR textures only to existing surfaces. Ensure the lighting transformation is absolute. No new objects. This output MUST be a high-resolution 2K image.';
 
     const result = await generateRenderImage({
-      provider: params.provider,
       sketchupImage: params.sketchupImage,
       referenceImages: params.referenceImages,
       finalPrompt: refinedPrompt + strictLock,
-      strength: params.strength,
-      controlStrength: params.controlStrength,
-      ipScale: params.ipScale,
-      seed: params.seed,
     });
-    return { url: result.url, error: null, seed: result.seed };
+    return { url: result.url, error: null };
   } catch (error: any) {
     return { url: null, error: error.message || 'Error desconocido' };
   }
