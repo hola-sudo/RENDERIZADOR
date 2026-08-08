@@ -1,5 +1,5 @@
 import { supabase, API_BASE_URL } from './supabaseClient';
-import { LightingType, type ImageProvider } from '../types';
+import { LightingType, type CameraMovement, type VideoRenderItem } from '../types';
 
 // Convierte un File a base64 SIN el prefijo "data:...;base64," (lo que espera el backend).
 const fileToBase64 = (file: File): Promise<{ data: string; mimeType: string }> =>
@@ -54,15 +54,7 @@ export const detectSceneElements = async (
   return json.description ?? 'No description available.';
 };
 
-// Ajustes opcionales del build con ControlNet (flux-max).
-export interface ControlNetOptions {
-  strength?: number;
-  controlStrength?: number;
-  ipScale?: number;
-  seed?: number;
-}
-
-/** Genera el render fotorrealista vía backend. */
+/** Genera el render fotorrealista vía backend (Gemini). */
 export const generateSingleRender = async (
   sketchupImage: File,
   sceneDescription: string,
@@ -72,10 +64,8 @@ export const generateSingleRender = async (
   colorTemperature: string,
   _exposureCompensation: string,
   contrastEnhancement: string,
-  provider: ImageProvider,
-  controlNet: ControlNetOptions,
   onProgress: (message: string) => void,
-): Promise<{ url: string | null; error: string | null; seed?: number }> => {
+): Promise<{ url: string | null; error: string | null }> => {
   try {
     onProgress('Preparando imágenes...');
     const [sketchup, references] = await Promise.all([
@@ -91,14 +81,9 @@ export const generateSingleRender = async (
       lightingType,
       colorTemperature,
       contrastEnhancement,
-      provider,
-      strength: controlNet.strength,
-      controlStrength: controlNet.controlStrength,
-      ipScale: controlNet.ipScale,
-      seed: controlNet.seed,
     });
 
-    return { url: json.url ?? null, error: null, seed: json.seed };
+    return { url: json.url ?? null, error: null };
   } catch (err: any) {
     return { url: null, error: err.message ?? 'Error desconocido' };
   }
@@ -118,4 +103,57 @@ export interface RenderItem {
 export const listRenders = async (): Promise<RenderItem[]> => {
   const json = await authedGet('/api/renders');
   return json.renders ?? [];
+};
+
+// ── Video de transición (Veo) ────────────────────────────────────────────────
+
+/** Sube ambos frames y arranca la generación de video en el backend. Devuelve el id de operación para pollear. */
+export const startVideoTransition = async (
+  startFrame: File,
+  endFrame: File,
+  cameraMovement: CameraMovement,
+  sceneDescription: string,
+): Promise<{ operationName: string }> => {
+  const [start, end] = await Promise.all([fileToBase64(startFrame), fileToBase64(endFrame)]);
+  const json = await authedPost('/api/video/start', {
+    startFrame: start,
+    endFrame: end,
+    cameraMovement,
+    sceneDescription,
+  });
+  return { operationName: json.operationName };
+};
+
+const checkVideoStatusOnce = async (
+  operationName: string,
+  cameraMovement: CameraMovement,
+  sceneDescription: string,
+): Promise<{ done: boolean; url?: string | null; error?: string }> => {
+  const params = new URLSearchParams({ operation: operationName, cameraMovement, sceneDescription });
+  return authedGet(`/api/video/status?${params.toString()}`);
+};
+
+/** Hace polling cada ~10s hasta que la operación de Veo termine (puede tardar hasta 6 minutos). */
+export const pollVideoUntilDone = async (
+  operationName: string,
+  cameraMovement: CameraMovement,
+  sceneDescription: string,
+  onProgress?: (message: string) => void,
+): Promise<{ url: string | null; error: string | null }> => {
+  const startedAt = Date.now();
+  for (;;) {
+    const elapsed = Math.round((Date.now() - startedAt) / 1000);
+    onProgress?.(`Generando video... (${elapsed}s, puede tardar hasta 6 minutos)`);
+    const status = await checkVideoStatusOnce(operationName, cameraMovement, sceneDescription);
+    if (status.done) {
+      return status.error ? { url: null, error: status.error } : { url: status.url ?? null, error: null };
+    }
+    await new Promise((resolve) => setTimeout(resolve, 10000));
+  }
+};
+
+/** Trae el historial de videos del usuario. */
+export const listVideoRenders = async (): Promise<VideoRenderItem[]> => {
+  const json = await authedGet('/api/video-renders');
+  return json.videos ?? [];
 };

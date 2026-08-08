@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { detectSceneElements, generateSingleRender } from '../services/apiService';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { LightingType, LightingConfig, IMAGE_PROVIDER_OPTIONS, CONTROLNET_PROVIDERS, type ImageProvider } from '../types';
+import { LightingType, LightingConfig } from '../types';
 
 const STEPS = [
   { id: 1, label: 'Escena' },
@@ -51,15 +51,8 @@ const EventRender: React.FC = () => {
   const [exposureCompensation, setExposureCompensation] = useState<LightingConfig['exposureCompensation']>('standard');
   const [contrastEnhancement, setContrastEnhancement] = useState<LightingConfig['contrastEnhancement']>('natural');
   const [advancedLightingInstructions, setAdvancedLightingInstructions] = useState('');
-  const [imageProvider, setImageProvider] = useState<ImageProvider>('gemini');
-  // Ajustes de ControlNet (solo se usan si el proveedor es flux-max).
-  const [strength, setStrength] = useState(0.85);
-  const [controlStrength, setControlStrength] = useState(0.75);
-  const [ipScale, setIpScale] = useState(0.7);
-  const [seedInput, setSeedInput] = useState('');
-  const usesControlNet = CONTROLNET_PROVIDERS.includes(imageProvider);
 
-  const [generatedRender, setGeneratedRender] = useState<{ url: string | null; error: string | null; seed?: number } | null>(null);
+  const [generatedRender, setGeneratedRender] = useState<{ url: string | null; error: string | null } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [currentGenerationProgress, setCurrentGenerationProgress] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -173,19 +166,10 @@ const EventRender: React.FC = () => {
     setIsLoading(true); setGeneratedRender(null); setError(null);
     setCurrentGenerationProgress('Iniciando generación...');
     try {
-      const parsedSeed = seedInput.trim() === '' ? undefined : Number(seedInput.trim());
-      const controlNet = usesControlNet
-        ? {
-            strength,
-            controlStrength,
-            ipScale,
-            seed: Number.isFinite(parsedSeed as number) ? (parsedSeed as number) : undefined,
-          }
-        : {};
       const result = await generateSingleRender(
         uploadedSketchupScene, sceneDescription, referenceImages, lightingType,
         advancedLightingInstructions, colorTemperature, exposureCompensation, contrastEnhancement,
-        imageProvider, controlNet, setCurrentGenerationProgress
+        setCurrentGenerationProgress
       );
       setGeneratedRender(result);
       if (result.url) setShowRender(true);
@@ -194,7 +178,7 @@ const EventRender: React.FC = () => {
       setError(`Error al generar: ${err.message}`);
       setCurrentGenerationProgress('');
     } finally { setIsLoading(false); }
-  }, [uploadedSketchupScene, sceneDescription, referenceImages, lightingType, advancedLightingInstructions, colorTemperature, exposureCompensation, contrastEnhancement, imageProvider, usesControlNet, strength, controlStrength, ipScale, seedInput]);
+  }, [uploadedSketchupScene, sceneDescription, referenceImages, lightingType, advancedLightingInstructions, colorTemperature, exposureCompensation, contrastEnhancement]);
 
   const handleDownloadImage = useCallback(() => {
     if (!generatedRender?.url) return;
@@ -354,47 +338,10 @@ const EventRender: React.FC = () => {
               <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Generar Render Fotorrealista</h2>
               <p className="text-stone-500 dark:text-stone-400 text-sm">Todo listo. Genera el render con la configuración actual.</p>
             </div>
-            <div>
-              <label htmlFor="provider" className="block text-xs font-semibold text-stone-600 dark:text-stone-400 uppercase tracking-wider mb-1.5">Modelo de render</label>
-              <select id="provider" value={imageProvider} onChange={(e) => setImageProvider(e.target.value as ImageProvider)} disabled={isLoading}
-                className="w-full p-2.5 rounded-lg bg-white dark:bg-stone-950 border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 text-sm focus:ring-2 focus:ring-stone-400 outline-none transition disabled:opacity-40">
-                {IMAGE_PROVIDER_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-              <p className="mt-1.5 text-xs text-stone-400">El análisis y el prompt siempre usan Gemini; aquí eliges qué modelo genera la imagen final.</p>
-            </div>
-
-            {usesControlNet && (
-              <div className="space-y-4 rounded-lg border border-stone-200 dark:border-stone-700 bg-stone-50 dark:bg-stone-900/40 p-4">
-                <p className="text-xs font-semibold text-stone-600 dark:text-stone-400 uppercase tracking-wider">Ajustes ControlNet</p>
-                {([
-                  { id: 'st', label: 'Repintado (strength)', hint: 'Bajo = fiel al SketchUp · Alto = más fotorrealista', value: strength, set: setStrength, min: 0.5, max: 1, step: 0.05 },
-                  { id: 'cs', label: 'Fuerza de geometría', hint: 'Cuánto respeta bordes y volúmenes del SketchUp', value: controlStrength, set: setControlStrength, min: 0.3, max: 1, step: 0.05 },
-                  { id: 'ip', label: 'Fuerza de referencias (IP-Adapter)', hint: 'Cuánto copia materiales/estilo de las imágenes de referencia', value: ipScale, set: setIpScale, min: 0, max: 1, step: 0.05 },
-                ] as const).map(({ id, label, hint, value, set, min, max, step }) => (
-                  <div key={id}>
-                    <div className="flex justify-between items-baseline mb-1">
-                      <label htmlFor={id} className="text-sm text-stone-700 dark:text-stone-300">{label}</label>
-                      <span className="text-xs font-mono text-stone-500">{value.toFixed(2)}</span>
-                    </div>
-                    <input id={id} type="range" min={min} max={max} step={step} value={value} disabled={isLoading}
-                      onChange={(e) => set(Number(e.target.value))}
-                      className="w-full accent-stone-700 dark:accent-stone-300 disabled:opacity-40" />
-                    <p className="mt-0.5 text-xs text-stone-400">{hint}</p>
-                  </div>
-                ))}
-                <div>
-                  <label htmlFor="seed" className="block text-sm text-stone-700 dark:text-stone-300 mb-1">Seed <span className="text-stone-400 font-normal">(vacío = aleatorio)</span></label>
-                  <input id="seed" type="number" value={seedInput} disabled={isLoading}
-                    onChange={(e) => setSeedInput(e.target.value)} placeholder="p. ej. 12345"
-                    className="w-full p-2 rounded-lg bg-white dark:bg-stone-950 border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 text-sm focus:ring-2 focus:ring-stone-400 outline-none transition disabled:opacity-40" />
-                  <p className="mt-0.5 text-xs text-stone-400">Fija el seed para reproducir el mismo resultado o mantener coherencia entre escenas.</p>
-                </div>
-              </div>
-            )}
             <div className="bg-stone-100 dark:bg-stone-800 rounded-lg p-4 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-stone-500">Escena</span><span className="text-stone-700 dark:text-stone-300 truncate ml-4 max-w-[60%] text-right">{uploadedSketchupScene?.name ?? '—'}</span></div>
               <div className="flex justify-between"><span className="text-stone-500">Iluminación</span><span className="text-stone-700 dark:text-stone-300 capitalize">{lightingType} · {colorTemperature}</span></div>
-              <div className="flex justify-between"><span className="text-stone-500">Modelo</span><span className="text-stone-700 dark:text-stone-300 uppercase">{imageProvider}</span></div>
+              <div className="flex justify-between"><span className="text-stone-500">Modelo</span><span className="text-stone-700 dark:text-stone-300">Gemini</span></div>
               <div className="flex justify-between"><span className="text-stone-500">Referencias</span><span className="text-stone-700 dark:text-stone-300">{referenceImages.length > 0 ? `${referenceImages.length} imagen${referenceImages.length > 1 ? 'es' : ''}` : 'Ninguna'}</span></div>
             </div>
             <button onClick={handleGenerateRender} disabled={isLoading || !uploadedSketchupScene || !sceneDescription.trim()}
@@ -409,14 +356,6 @@ const EventRender: React.FC = () => {
             )}
             {generatedRender?.url && (
               <div className="space-y-2 pt-2 border-t border-stone-200 dark:border-stone-700">
-                {typeof generatedRender.seed === 'number' && (
-                  <button
-                    onClick={() => setSeedInput(String(generatedRender.seed))}
-                    title="Usar este seed en la próxima generación"
-                    className="text-xs text-stone-500 hover:text-stone-800 dark:hover:text-stone-200 transition font-mono">
-                    seed: {generatedRender.seed} · clic para reutilizar
-                  </button>
-                )}
                 <p className="text-xs text-stone-400">*Las imágenes generadas por IA pueden contener imperfecciones.</p>
                 <div className="flex gap-2">
                   <button onClick={handleDownloadImage} className="flex-1 py-2.5 px-4 bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-800 dark:text-stone-200 text-sm font-semibold rounded-lg transition">Descargar</button>

@@ -10,18 +10,26 @@ export enum LightingType {
   Night = 'night',
 }
 
-// Proveedor del modelo que genera el render final (Rol B).
-export type ImageProvider = 'gemini' | 'gpt' | 'flux' | 'flux-max';
+// Movimiento de cámara para la transición de video (Start Frame -> End Frame).
+export type CameraMovement = 'dolly_in' | 'dolly_out' | 'zoom_in' | 'zoom_out' | 'pan_left' | 'pan_right';
 
-export const IMAGE_PROVIDER_OPTIONS: { value: ImageProvider; label: string }[] = [
-  { value: 'gemini', label: 'Gemini — nativo, rápido y buena fidelidad geométrica' },
-  { value: 'gpt', label: 'GPT (gpt-image-1) — de OpenAI, buen seguimiento de instrucciones' },
-  { value: 'flux', label: 'FLUX Kontext (fal.ai) — edición multi-imagen preservando la escena' },
-  { value: 'flux-max', label: 'FLUX Avanzado — ControlNet (Canny+Depth) + IP-Adapter, geometría anclada' },
+export const CAMERA_MOVEMENT_OPTIONS: { value: CameraMovement; label: string }[] = [
+  { value: 'dolly_in', label: 'Dolly In — la cámara avanza hacia la escena' },
+  { value: 'dolly_out', label: 'Dolly Out — la cámara retrocede desde la escena' },
+  { value: 'zoom_in', label: 'Zoom In — acercamiento óptico' },
+  { value: 'zoom_out', label: 'Zoom Out — alejamiento óptico' },
+  { value: 'pan_left', label: 'Pan Izquierda — barrido horizontal' },
+  { value: 'pan_right', label: 'Pan Derecha — barrido horizontal' },
 ];
 
-// Proveedores que usan ControlNet (exponen strength / control / seed en la UI).
-export const CONTROLNET_PROVIDERS: ImageProvider[] = ['flux-max'];
+export interface VideoRenderItem {
+  id: string;
+  url: string | null;
+  start_description: string | null;
+  camera_movement: string | null;
+  duration_seconds: number | null;
+  created_at: string;
+}
 
 export interface ImagePart {
   inlineData: {
