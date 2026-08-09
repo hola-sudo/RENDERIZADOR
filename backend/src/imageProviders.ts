@@ -13,10 +13,18 @@ import {
   retryWithExponentialBackoff,
 } from './gemini.js';
 
+// Lista blanca de modelos de imagen. El cliente manda la clave, nunca el ID.
+export const RENDER_MODEL_IDS = {
+  standard: 'gemini-3.1-flash-image-preview', // Nano Banana 2: rápido y barato
+  pro: 'gemini-3-pro-image-preview', // Nano Banana Pro: mayor fidelidad, más lento y caro
+} as const;
+export type RenderModelKey = keyof typeof RENDER_MODEL_IDS;
+
 export interface GenerateImageParams {
   sketchupImage: ImageInput;
   referenceImages: ImageInput[];
   finalPrompt: string;
+  renderModel?: RenderModelKey;
 }
 
 export interface RenderResult {
@@ -58,7 +66,7 @@ export const generateRenderImage = async (p: GenerateImageParams): Promise<Rende
   const response = await retryWithExponentialBackoff(
     () =>
       ai.models.generateContent({
-        model: 'gemini-3.1-flash-image-preview',
+        model: RENDER_MODEL_IDS[p.renderModel ?? 'standard'],
         contents: { parts },
         config: {
           systemInstruction: SYSTEM_INSTRUCTION,

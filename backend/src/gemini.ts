@@ -5,7 +5,7 @@ import {
   HarmCategory,
   HarmBlockThreshold,
 } from '@google/genai';
-import { generateRenderImage } from './imageProviders.js';
+import { generateRenderImage, type RenderModelKey } from './imageProviders.js';
 
 // Tipos del dominio (equivalentes a los del frontend).
 export enum LightingType {
@@ -76,8 +76,9 @@ export const detectSceneElements = async (originalImages: ImageInput[]): Promise
   - **Contexto del Evento:** [Tipo de evento y estilo general, usando adjetivos descriptivos.]
   - **Objetos Principales y Atributos:** [Identifica cada objeto distintivo y describe su forma/silueta, material predominante, textura percibida y color observado. Mantén la adherencia geométrica exacta a la forma y volumen del SketchUp.]
   - **Elementos Naturales/Entorno:** [Suelo, paredes, vegetación u otros elementos del entorno.]
+  - **Inventario Cerrado de Objetos:** [Lista NUMERADA y EXHAUSTIVA de TODOS los objetos y elementos visibles: estructuras, vanos, columnas, vegetación, mobiliario, ornamentos, luminarias, fuentes de agua, etc. Cada entrada: nombre + ubicación breve + material/color percibido. Este inventario define el mundo cerrado del render: NADA que no esté en esta lista puede aparecer en la imagen final.]
   - **Zonas Vacías/Restringidas:** [Áreas que deben permanecer absolutamente vacías, describiendo sus características visuales y materiales.]
-  - **Masas Florales:** [Responde EXACTAMENTE "SÍ" o "NO". Responde "SÍ" únicamente si existen formas verdes irregulares tipo "blob" o masas sin detalle que claramente representen ARREGLOS FLORALES O FOLLAJE DECORATIVO pendientes de modelar. Responde "NO" si la vegetación visible son solo árboles, arbustos, pasto o plantas de entorno ya definidos, o si no hay vegetación.]
+  - **Arreglos Florales:** [Responde EXACTAMENTE "SÍ" o "NO". Responde "SÍ" únicamente si existen formas verdes irregulares tipo "blob" o masas sin detalle que claramente representen ARREGLOS FLORALES O FOLLAJE DECORATIVO pendientes de modelar. Responde "NO" si la vegetación visible son solo árboles, arbustos, pasto o plantas de entorno ya definidos, o si no hay vegetación.]
 
   Reglas Absolutas para tu OUTPUT:
   - Sé CONCISO pero INFORMATIVO en cada punto.
@@ -203,6 +204,7 @@ export interface RenderParams {
   lightingType: LightingType;
   colorTemperature: string;
   contrastEnhancement: string;
+  renderModel?: RenderModelKey;
 }
 
 /** Orquesta el render completo: refina el prompt y genera la imagen. */
@@ -223,10 +225,25 @@ export const generateSingleRender = async (
     const strictLock =
       '\n\nCRITICAL: Maintain 100% geometric fidelity to the SketchUp screenshot. Apply ultra-photorealistic 8K PBR textures only to existing surfaces. Ensure the lighting transformation is absolute. No new objects. This output MUST be a high-resolution 2K image.';
 
+    // Este bloque se apendea de forma determinista al prompt final, para que la
+    // restricción de mundo cerrado llegue textual al modelo de imagen aunque el
+    // paso de refinamiento la parafrasee o la omita.
+    const closedWorldLock = `
+
+### CLOSED-WORLD CONSTRAINT (ABSOLUTE) ###
+The scene inventory below is EXHAUSTIVE. The output must contain EXACTLY the objects listed there and visible in the input image — nothing else.
+Any object NOT in the inventory and NOT visible in the input image is FORBIDDEN, including but not limited to: planters, pots, urns, topiary, bushes, hedges, flowers, floor lamps, lanterns, candles, furniture, tables, chairs, rugs, curtains, decorations, signage, vehicles, people, animals.
+FLOOR MATERIALS: interior and exterior floor patterns must match the input image EXACTLY — do not change pavement direction or tile scale, do not add borders/inlays/patterns, do not swap floor materials.
+
+SCENE INVENTORY (source of truth for allowed content):
+${params.sceneDescription}
+`;
+
     const result = await generateRenderImage({
       sketchupImage: params.sketchupImage,
       referenceImages: params.referenceImages,
-      finalPrompt: refinedPrompt + strictLock,
+      finalPrompt: refinedPrompt + strictLock + closedWorldLock,
+      renderModel: params.renderModel,
     });
     return { url: result.url, error: null };
   } catch (error: any) {
