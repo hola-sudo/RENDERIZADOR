@@ -71,7 +71,7 @@ export const generateRenderImage = async (p: GenerateImageParams): Promise<Rende
         config: {
           systemInstruction: SYSTEM_INSTRUCTION,
           safetySettings,
-          imageConfig: { aspectRatio: '16:9', imageSize: '4K' },
+          imageConfig: { aspectRatio: '16:9', imageSize: '2K' },
         },
       }),
     5,
