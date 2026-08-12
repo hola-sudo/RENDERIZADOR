@@ -42,7 +42,7 @@ app.post('/api/detect-scene', requireAuth, async (req: AuthedRequest, res) => {
 // Genera el render fotorrealista final.
 app.post('/api/render', requireAuth, async (req: AuthedRequest, res) => {
   try {
-    const { sketchupImage, referenceImages, sceneDescription, lightingType, colorTemperature, contrastEnhancement, renderModel } =
+    const { sketchupImage, referenceImages, sceneDescription, lightingType, colorTemperature, contrastEnhancement, renderModel, renderSize } =
       req.body ?? {};
 
     if (!sketchupImage?.data) {
@@ -57,6 +57,7 @@ app.post('/api/render', requireAuth, async (req: AuthedRequest, res) => {
       colorTemperature: colorTemperature ?? 'neutral',
       contrastEnhancement: contrastEnhancement ?? 'natural',
       renderModel: renderModel === 'pro' ? 'pro' : 'standard',
+      renderSize: renderSize === '4K' ? '4K' : '2K',
     });
 
     if (result.error) return res.status(502).json({ error: result.error });

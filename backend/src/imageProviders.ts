@@ -20,11 +20,16 @@ export const RENDER_MODEL_IDS = {
 } as const;
 export type RenderModelKey = keyof typeof RENDER_MODEL_IDS;
 
+// Resoluciones permitidas. 4K duplica el costo por imagen aprox.
+export const RENDER_SIZES = ['2K', '4K'] as const;
+export type RenderSize = (typeof RENDER_SIZES)[number];
+
 export interface GenerateImageParams {
   sketchupImage: ImageInput;
   referenceImages: ImageInput[];
   finalPrompt: string;
   renderModel?: RenderModelKey;
+  renderSize?: RenderSize;
 }
 
 export interface RenderResult {
@@ -32,7 +37,7 @@ export interface RenderResult {
 }
 
 const SYSTEM_INSTRUCTION =
-  'You are a professional architectural and event rendering engine. Transform SketchUp screenshots into high-fidelity photorealistic 2K renders, following user instructions on materials, lighting, and textures while strictly maintaining the geometric silhouettes of the original input. Do not add or remove physical objects.';
+  'You are a professional architectural and event rendering engine. Transform SketchUp screenshots into high-fidelity photorealistic renders, following user instructions on materials, lighting, and textures while strictly maintaining the geometric silhouettes of the original input. Do not add or remove physical objects.';
 
 interface ImagePart {
   inlineData: { data: string; mimeType: string };
@@ -71,7 +76,7 @@ export const generateRenderImage = async (p: GenerateImageParams): Promise<Rende
         config: {
           systemInstruction: SYSTEM_INSTRUCTION,
           safetySettings,
-          imageConfig: { aspectRatio: '16:9', imageSize: '2K' },
+          imageConfig: { aspectRatio: '16:9', imageSize: p.renderSize ?? '2K' },
         },
       }),
     5,

@@ -5,7 +5,7 @@ import {
   HarmCategory,
   HarmBlockThreshold,
 } from '@google/genai';
-import { generateRenderImage, type RenderModelKey } from './imageProviders.js';
+import { generateRenderImage, type RenderModelKey, type RenderSize } from './imageProviders.js';
 
 // Tipos del dominio (equivalentes a los del frontend).
 export enum LightingType {
@@ -205,6 +205,7 @@ export interface RenderParams {
   colorTemperature: string;
   contrastEnhancement: string;
   renderModel?: RenderModelKey;
+  renderSize?: RenderSize;
 }
 
 /** Orquesta el render completo: refina el prompt y genera la imagen. */
@@ -223,7 +224,7 @@ export const generateSingleRender = async (
     );
 
     const strictLock =
-      '\n\nCRITICAL: Maintain 100% geometric fidelity to the SketchUp screenshot. Apply ultra-photorealistic 8K PBR textures only to existing surfaces. Ensure the lighting transformation is absolute. No new objects. This output MUST be a high-resolution 2K image.';
+      `\n\nCRITICAL: Maintain 100% geometric fidelity to the SketchUp screenshot. Apply ultra-photorealistic 8K PBR textures only to existing surfaces. Ensure the lighting transformation is absolute. No new objects. This output MUST be a high-resolution ${params.renderSize ?? '2K'} image.`;
 
     // Este bloque se apendea de forma determinista al prompt final, para que la
     // restricción de mundo cerrado llegue textual al modelo de imagen aunque el
@@ -244,6 +245,7 @@ ${params.sceneDescription}
       referenceImages: params.referenceImages,
       finalPrompt: refinedPrompt + strictLock + closedWorldLock,
       renderModel: params.renderModel,
+      renderSize: params.renderSize,
     });
     return { url: result.url, error: null };
   } catch (error: any) {

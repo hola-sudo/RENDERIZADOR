@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { detectSceneElements, generateSingleRender } from '../services/apiService';
 import LoadingSpinner from '../components/LoadingSpinner';
-import { LightingType, LightingConfig, RenderModel, RENDER_MODEL_OPTIONS } from '../types';
+import { LightingType, LightingConfig, RenderModel, RENDER_MODEL_OPTIONS, RenderSize, RENDER_SIZE_OPTIONS } from '../types';
 
 const STEPS = [
   { id: 1, label: 'Escena' },
@@ -52,6 +52,7 @@ const EventRender: React.FC = () => {
   const [contrastEnhancement, setContrastEnhancement] = useState<LightingConfig['contrastEnhancement']>('natural');
   const [advancedLightingInstructions, setAdvancedLightingInstructions] = useState('');
   const [renderModel, setRenderModel] = useState<RenderModel>('standard');
+  const [renderSize, setRenderSize] = useState<RenderSize>('2K');
 
   const [generatedRender, setGeneratedRender] = useState<{ url: string | null; error: string | null } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -170,7 +171,7 @@ const EventRender: React.FC = () => {
       const result = await generateSingleRender(
         uploadedSketchupScene, sceneDescription, referenceImages, lightingType,
         advancedLightingInstructions, colorTemperature, exposureCompensation, contrastEnhancement,
-        renderModel, setCurrentGenerationProgress
+        renderModel, renderSize, setCurrentGenerationProgress
       );
       setGeneratedRender(result);
       if (result.url) setShowRender(true);
@@ -179,7 +180,7 @@ const EventRender: React.FC = () => {
       setError(`Error al generar: ${err.message}`);
       setCurrentGenerationProgress('');
     } finally { setIsLoading(false); }
-  }, [uploadedSketchupScene, sceneDescription, referenceImages, lightingType, advancedLightingInstructions, colorTemperature, exposureCompensation, contrastEnhancement, renderModel]);
+  }, [uploadedSketchupScene, sceneDescription, referenceImages, lightingType, advancedLightingInstructions, colorTemperature, exposureCompensation, contrastEnhancement, renderModel, renderSize]);
 
   const handleDownloadImage = useCallback(() => {
     if (!generatedRender?.url) return;
@@ -349,10 +350,20 @@ const EventRender: React.FC = () => {
                 <p className="text-xs text-stone-400 mt-1.5">El modo Pro razona antes de pintar: mayor fidelidad al diseño, pero tarda más y cuesta más por imagen.</p>
               )}
             </div>
+            <div>
+              <label htmlFor="render-size" className="block text-xs font-semibold text-stone-600 dark:text-stone-400 uppercase tracking-wider mb-1.5">Resolución</label>
+              <select id="render-size" value={renderSize} onChange={(e) => setRenderSize(e.target.value as RenderSize)} disabled={isLoading}
+                className="w-full p-2.5 rounded-lg bg-white dark:bg-stone-950 border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 text-sm focus:ring-2 focus:ring-stone-400 outline-none transition disabled:opacity-40">
+                {RENDER_SIZE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+              {renderSize === '4K' && (
+                <p className="text-xs text-stone-400 mt-1.5">4K duplica aproximadamente el costo por imagen y puede tardar más en generarse.</p>
+              )}
+            </div>
             <div className="bg-stone-100 dark:bg-stone-800 rounded-lg p-4 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-stone-500">Escena</span><span className="text-stone-700 dark:text-stone-300 truncate ml-4 max-w-[60%] text-right">{uploadedSketchupScene?.name ?? '—'}</span></div>
               <div className="flex justify-between"><span className="text-stone-500">Iluminación</span><span className="text-stone-700 dark:text-stone-300 capitalize">{lightingType} · {colorTemperature}</span></div>
-              <div className="flex justify-between"><span className="text-stone-500">Modelo</span><span className="text-stone-700 dark:text-stone-300">{renderModel === 'pro' ? 'Nano Banana Pro' : 'Nano Banana 2'}</span></div>
+              <div className="flex justify-between"><span className="text-stone-500">Modelo</span><span className="text-stone-700 dark:text-stone-300">{renderModel === 'pro' ? 'Nano Banana Pro' : 'Nano Banana 2'} · {renderSize}</span></div>
               <div className="flex justify-between"><span className="text-stone-500">Referencias</span><span className="text-stone-700 dark:text-stone-300">{referenceImages.length > 0 ? `${referenceImages.length} imagen${referenceImages.length > 1 ? 'es' : ''}` : 'Ninguna'}</span></div>
             </div>
             <button onClick={handleGenerateRender} disabled={isLoading || !uploadedSketchupScene || !sceneDescription.trim()}

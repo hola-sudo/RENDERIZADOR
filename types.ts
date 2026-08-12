@@ -18,6 +18,14 @@ export const RENDER_MODEL_OPTIONS: { value: RenderModel; label: string }[] = [
   { value: 'pro', label: 'Pro — máxima fidelidad, más lento (Nano Banana Pro)' },
 ];
 
+// Resolución del render final.
+export type RenderSize = '2K' | '4K';
+
+export const RENDER_SIZE_OPTIONS: { value: RenderSize; label: string }[] = [
+  { value: '2K', label: '2K — estándar' },
+  { value: '4K', label: '4K — máxima resolución, mayor costo' },
+];
+
 // Movimiento de cámara para la transición de video (Start Frame -> End Frame).
 export type CameraMovement = 'dolly_in' | 'dolly_out' | 'zoom_in' | 'zoom_out' | 'pan_left' | 'pan_right';
 
