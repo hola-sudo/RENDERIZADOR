@@ -14,7 +14,7 @@ import { type ImageInput } from './gemini.js';
 
 export type VideoProvider = 'veo';
 
-const VEO_MODEL = 'veo-3.1-generate-preview';
+const VEO_MODEL = 'veo-3.1-fast-generate-preview';
 
 const getGeminiClient = (): GoogleGenAI => {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -42,6 +42,7 @@ export const startVideoGeneration = async (p: StartVideoParams): Promise<{ opera
       durationSeconds: p.durationSeconds ?? 8,
       aspectRatio: '16:9',
       resolution: '1080p',
+      generateAudio: false,
     },
   });
 
