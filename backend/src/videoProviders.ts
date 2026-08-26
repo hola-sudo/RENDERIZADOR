@@ -42,7 +42,8 @@ export const startVideoGeneration = async (p: StartVideoParams): Promise<{ opera
       durationSeconds: p.durationSeconds ?? 8,
       aspectRatio: '16:9',
       resolution: '1080p',
-      generateAudio: false,
+      // Nota: `generateAudio` solo existe en Vertex AI; la API de Gemini lo
+      // rechaza y Veo 3.1 siempre genera audio ahí.
     },
   });
 
