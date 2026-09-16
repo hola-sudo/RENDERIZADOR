@@ -111,12 +111,15 @@ export const listRenders = async (): Promise<RenderItem[]> => {
 
 // ── Video de transición (Veo) ────────────────────────────────────────────────
 
+export type VideoResolution = '1080p' | '4k';
+
 /** Sube ambos frames y arranca la generación de video en el backend. Devuelve el id de operación para pollear. */
 export const startVideoTransition = async (
   startFrame: File,
   endFrame: File,
   cameraMovement: CameraMovement,
   sceneDescription: string,
+  resolution: VideoResolution = '1080p',
 ): Promise<{ operationName: string }> => {
   const [start, end] = await Promise.all([fileToBase64(startFrame), fileToBase64(endFrame)]);
   const json = await authedPost('/api/video/start', {
@@ -124,6 +127,7 @@ export const startVideoTransition = async (
     endFrame: end,
     cameraMovement,
     sceneDescription,
+    resolution,
   });
   return { operationName: json.operationName };
 };

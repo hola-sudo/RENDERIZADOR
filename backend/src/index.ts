@@ -119,14 +119,19 @@ The motion must be smooth, natural and high-fidelity, like a real architectural 
 // el cliente hace polling en /api/video/status hasta que termine (puede tardar minutos).
 app.post('/api/video/start', requireAuth, async (req: AuthedRequest, res) => {
   try {
-    const { startFrame, endFrame, cameraMovement, sceneDescription } = req.body ?? {};
+    const { startFrame, endFrame, cameraMovement, sceneDescription, resolution } = req.body ?? {};
     if (!startFrame?.data || !endFrame?.data) {
       return res.status(400).json({ error: 'Faltan el Start Frame y/o el End Frame.' });
     }
     const movement: CameraMovement = CAMERA_MOVEMENTS.includes(cameraMovement) ? cameraMovement : 'dolly_in';
     const prompt = buildVeoPrompt(movement, sceneDescription ?? '');
 
-    const { operationName } = await generateVideoTransition('veo', { startFrame, endFrame, prompt });
+    const { operationName } = await generateVideoTransition('veo', {
+      startFrame,
+      endFrame,
+      prompt,
+      resolution: resolution === '4k' ? '4k' : '1080p',
+    });
     res.json({ operationName });
   } catch (err: any) {
     res.status(500).json({ error: err.message ?? 'Error interno.' });

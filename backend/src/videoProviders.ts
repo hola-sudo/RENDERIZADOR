@@ -22,11 +22,16 @@ const getGeminiClient = (): GoogleGenAI => {
   return new GoogleGenAI({ apiKey });
 };
 
+// 4K solo está disponible en Veo 3.1 / 3.1 Fast con duración de 8s (la que ya
+// usamos por la interpolación first/last frame). Cuesta más por segundo.
+export type VideoResolution = '1080p' | '4k';
+
 export interface StartVideoParams {
   startFrame: ImageInput;
   endFrame: ImageInput;
   prompt: string;
   durationSeconds?: number; // default 8 (fijo mientras se usa interpolación first/last frame)
+  resolution?: VideoResolution; // default 1080p
 }
 
 /** Arranca la generación en Veo y devuelve el nombre de la operación para poder pollearla luego. */
@@ -41,7 +46,7 @@ export const startVideoGeneration = async (p: StartVideoParams): Promise<{ opera
       lastFrame: { imageBytes: p.endFrame.data, mimeType: p.endFrame.mimeType },
       durationSeconds: p.durationSeconds ?? 8,
       aspectRatio: '16:9',
-      resolution: '1080p',
+      resolution: p.resolution ?? '1080p',
       // Nota: `generateAudio` solo existe en Vertex AI; la API de Gemini lo
       // rechaza y Veo 3.1 siempre genera audio ahí.
     },

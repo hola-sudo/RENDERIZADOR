@@ -44,6 +44,7 @@ const VideoTransition: React.FC = () => {
   const [isDetecting, setIsDetecting] = useState(false);
 
   const [cameraMovement, setCameraMovement] = useState<CameraMovement>('dolly_in');
+  const [upscale4k, setUpscale4k] = useState(false);
 
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -110,7 +111,10 @@ const VideoTransition: React.FC = () => {
     setIsLoading(true); setVideoUrl(null); setError(null);
     setProgress('Enviando frames a Veo...');
     try {
-      const { operationName } = await startVideoTransition(startFrame, endFrame, cameraMovement, sceneDescription);
+      const { operationName } = await startVideoTransition(
+        startFrame, endFrame, cameraMovement, sceneDescription,
+        upscale4k ? '4k' : '1080p',
+      );
       const result = await pollVideoUntilDone(operationName, cameraMovement, sceneDescription, setProgress);
       if (result.error) {
         setError(result.error);
@@ -123,14 +127,14 @@ const VideoTransition: React.FC = () => {
       setError(`Error al generar: ${err.message}`);
       setProgress('');
     } finally { setIsLoading(false); }
-  }, [startFrame, endFrame, cameraMovement, sceneDescription]);
+  }, [startFrame, endFrame, cameraMovement, sceneDescription, upscale4k]);
 
   const handleStartNew = useCallback(() => {
     setStartFrame(null); setStartFramePreview(null);
     setEndFrame(null); setEndFramePreview(null);
     if (startFileInputRef.current) startFileInputRef.current.value = '';
     if (endFileInputRef.current) endFileInputRef.current.value = '';
-    setSceneDescription(''); setCameraMovement('dolly_in');
+    setSceneDescription(''); setCameraMovement('dolly_in'); setUpscale4k(false);
     setVideoUrl(null); setError(null); setProgress(''); setCurrentStep(1);
   }, []);
 
@@ -230,14 +234,27 @@ const VideoTransition: React.FC = () => {
           <div className="space-y-5">
             <div>
               <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Generar Video de Transición</h2>
-              <p className="text-stone-500 dark:text-stone-400 text-sm">Veo 3.1 genera 8s de video 1080p. Puede tardar hasta 6 minutos.</p>
+              <p className="text-stone-500 dark:text-stone-400 text-sm">Veo 3.1 genera 8s de video en {upscale4k ? '4K' : '1080p'}. Puede tardar hasta 6 minutos.</p>
             </div>
             <div className="bg-stone-100 dark:bg-stone-800 rounded-lg p-4 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-stone-500">Start Frame</span><span className="text-stone-700 dark:text-stone-300 truncate ml-4 max-w-[60%] text-right">{startFrame?.name ?? '—'}</span></div>
               <div className="flex justify-between"><span className="text-stone-500">End Frame</span><span className="text-stone-700 dark:text-stone-300 truncate ml-4 max-w-[60%] text-right">{endFrame?.name ?? '—'}</span></div>
               <div className="flex justify-between"><span className="text-stone-500">Movimiento</span><span className="text-stone-700 dark:text-stone-300">{CAMERA_MOVEMENT_OPTIONS.find(o => o.value === cameraMovement)?.label}</span></div>
+              <div className="flex justify-between"><span className="text-stone-500">Resolución</span><span className="text-stone-700 dark:text-stone-300">{upscale4k ? '4K' : '1080p'}</span></div>
             </div>
-            <p className="text-xs text-stone-400">Costo aproximado por intento: $1.20–$3.20 USD (Veo cobra por segundo generado).</p>
+            <label className={`flex items-start gap-3 p-4 rounded-lg border transition ${isLoading ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${
+              upscale4k
+                ? 'bg-stone-800/5 dark:bg-stone-200/5 border-stone-800 dark:border-stone-200'
+                : 'bg-white dark:bg-stone-950 border-stone-300 dark:border-stone-700 hover:border-stone-400 dark:hover:border-stone-600'
+            }`}>
+              <input type="checkbox" checked={upscale4k} onChange={(e) => setUpscale4k(e.target.checked)} disabled={isLoading}
+                className="mt-0.5 w-4 h-4 accent-stone-800 dark:accent-stone-200 shrink-0" />
+              <span className="text-sm">
+                <span className="block font-semibold text-stone-800 dark:text-stone-200">Resolución 4K</span>
+                <span className="block text-stone-500 dark:text-stone-400 mt-0.5">Veo genera el video directamente en 4K (3840×2160), con mejores texturas y nitidez. Consume créditos adicionales y puede tardar más.</span>
+              </span>
+            </label>
+            <p className="text-xs text-stone-400">Costo aproximado por intento: $1.20–$3.20 USD (Veo cobra por segundo generado){upscale4k ? '; en 4K el costo por segundo es mayor' : ''}.</p>
             <button onClick={handleGenerate} disabled={isLoading || !startFrame || !endFrame}
               className="w-full py-4 rounded-lg bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 text-base font-bold hover:bg-stone-700 dark:hover:bg-stone-300 transition disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 dark:disabled:bg-stone-700 dark:disabled:text-stone-500">
               {isLoading ? 'Generando video...' : 'Generar video'}
