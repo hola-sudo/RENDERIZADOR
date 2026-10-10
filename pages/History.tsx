@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { listRenders, listVideoRenders, type RenderItem } from '../services/apiService';
+import { listRenders, listVideoRenders, upscaleVideoToEnd, type RenderItem } from '../services/apiService';
 import type { VideoRenderItem } from '../types';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -18,6 +18,35 @@ const History: React.FC = () => {
   const [videos, setVideos] = useState<VideoRenderItem[]>([]);
   const [videosLoading, setVideosLoading] = useState(true);
   const [videosError, setVideosError] = useState<string | null>(null);
+
+  // Upscaling (proceso aparte): progreso/error por video, indexado por id.
+  const [upscaling, setUpscaling] = useState<Record<string, string>>({});
+  const [upscaleErrors, setUpscaleErrors] = useState<Record<string, string>>({});
+
+  const handleUpscale = async (id: string) => {
+    setUpscaleErrors((prev) => {
+      const { [id]: _removed, ...rest } = prev;
+      return rest;
+    });
+    setUpscaling((prev) => ({ ...prev, [id]: 'Enviando el video al upscaler...' }));
+    const result = await upscaleVideoToEnd(id, (message) => setUpscaling((prev) => ({ ...prev, [id]: message })));
+    setUpscaling((prev) => {
+      const { [id]: _removed, ...rest } = prev;
+      return rest;
+    });
+    if (result.error) {
+      setUpscaleErrors((prev) => ({ ...prev, [id]: result.error! }));
+      return;
+    }
+    // Refleja la nueva versión 4K sin recargar todo el historial.
+    setVideos((prev) =>
+      prev.map((video) =>
+        video.id === id
+          ? { ...video, upscaled_url: result.url, upscale_status: 'done', upscale_resolution: '4k', upscale_error: null }
+          : video,
+      ),
+    );
+  };
 
   useEffect(() => {
     let active = true;
@@ -113,13 +142,37 @@ const History: React.FC = () => {
                   Video no disponible
                 </div>
               )}
-              <div className="p-3 space-y-1">
+              <div className="p-3 space-y-2">
                 <p className="text-xs text-stone-400">{formatDate(item.created_at)}</p>
                 <p className="text-sm text-stone-700 dark:text-stone-300 capitalize">
-                  {item.camera_movement?.replace('_', ' ') ?? '—'} · {item.duration_seconds ?? '—'}s
+                  {item.camera_movement?.replace('_', ' ') ?? '—'} · {item.duration_seconds ?? '—'}s · {item.resolution ?? '1080p'}
                 </p>
                 {item.start_description && (
                   <p className="text-xs text-stone-500 dark:text-stone-400 line-clamp-2">{item.start_description}</p>
+                )}
+
+                {/* Upscale a 4K: proceso aparte sobre este video ya generado */}
+                {item.upscaled_url ? (
+                  <a href={item.upscaled_url} download={`video_${item.id}_4k.mp4`}
+                    className="block text-center py-2 px-3 bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 hover:bg-stone-700 dark:hover:bg-stone-300 text-xs font-semibold rounded-lg transition">
+                    Descargar {item.upscale_resolution?.toUpperCase() ?? '4K'}
+                  </a>
+                ) : upscaling[item.id] ? (
+                  <div className="flex items-center gap-2 text-xs text-stone-500 dark:text-stone-400"><LoadingSpinner /><span>{upscaling[item.id]}</span></div>
+                ) : (
+                  <button onClick={() => handleUpscale(item.id)} disabled={!item.url}
+                    className="w-full py-2 px-3 rounded-lg bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-300 text-xs font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed">
+                    {item.upscale_status === 'processing'
+                      ? 'Reanudar upscale a 4K'
+                      : item.upscale_status === 'error'
+                        ? 'Reintentar upscale a 4K'
+                        : 'Escalar a 4K'}
+                  </button>
+                )}
+                {(upscaleErrors[item.id] ?? (!upscaling[item.id] && !item.upscaled_url ? item.upscale_error : null)) && (
+                  <p className="text-xs text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg p-2">
+                    {upscaleErrors[item.id] ?? item.upscale_error}
+                  </p>
                 )}
               </div>
             </div>

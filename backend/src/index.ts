@@ -10,7 +10,17 @@ import {
 } from './gemini.js';
 import { saveRender, listRenders } from './renders.js';
 import { generateVideoTransition, checkVideoGeneration } from './videoProviders.js';
-import { saveVideoRender, listVideoRenders } from './videoRenders.js';
+import {
+  saveVideoRender,
+  listVideoRenders,
+  getVideoRender,
+  createSourceUrl,
+  createPlaybackUrl,
+  markUpscaleStarted,
+  markUpscaleFailed,
+  saveUpscaledVideo,
+} from './videoRenders.js';
+import { upscaleVideo, checkVideoUpscale, type UpscaleResolution } from './videoUpscaler.js';
 
 const app = express();
 
@@ -119,18 +129,18 @@ The motion must be smooth, natural and high-fidelity, like a real architectural 
 // el cliente hace polling en /api/video/status hasta que termine (puede tardar minutos).
 app.post('/api/video/start', requireAuth, async (req: AuthedRequest, res) => {
   try {
-    const { startFrame, endFrame, cameraMovement, sceneDescription, resolution } = req.body ?? {};
+    const { startFrame, endFrame, cameraMovement, sceneDescription } = req.body ?? {};
     if (!startFrame?.data || !endFrame?.data) {
       return res.status(400).json({ error: 'Faltan el Start Frame y/o el End Frame.' });
     }
     const movement: CameraMovement = CAMERA_MOVEMENTS.includes(cameraMovement) ? cameraMovement : 'dolly_in';
     const prompt = buildVeoPrompt(movement, sceneDescription ?? '');
 
+    // Siempre 1080p. El 4K se obtiene después con el upscaler (/api/video/upscale/*).
     const { operationName } = await generateVideoTransition('veo', {
       startFrame,
       endFrame,
       prompt,
-      resolution: resolution === '4k' ? '4k' : '1080p',
     });
     res.json({ operationName });
   } catch (err: any) {
@@ -160,7 +170,107 @@ app.get('/api/video/status', requireAuth, async (req: AuthedRequest, res) => {
       durationSeconds: 8,
     });
 
-    res.json({ done: true, url: record.url });
+    res.json({ done: true, url: record.url, videoRenderId: record.id });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message ?? 'Error interno.' });
+  }
+});
+
+// ── Upscaling de video (proceso aparte) ─────────────────────────────────────
+// El video de Veo siempre queda en 1080p. Subirlo a 4K es un segundo paso
+// explícito sobre un video YA guardado: no toca la generación ni se cobra si
+// el usuario no lo pide. Mismo patrón start/status porque también tarda minutos.
+const UPSCALE_RESOLUTIONS = ['1080p', '4k'] as const;
+
+app.post('/api/video/upscale/start', requireAuth, async (req: AuthedRequest, res) => {
+  try {
+    const { videoRenderId, targetResolution } = req.body ?? {};
+    if (!videoRenderId || typeof videoRenderId !== 'string') {
+      return res.status(400).json({ error: 'Falta el id del video a escalar.' });
+    }
+    const resolution: UpscaleResolution = UPSCALE_RESOLUTIONS.includes(targetResolution)
+      ? targetResolution
+      : '4k';
+
+    const client = createUserClient(req.accessToken!);
+    const record = await getVideoRender(client, videoRenderId);
+    if (!record) return res.status(404).json({ error: 'No se encontró el video.' });
+    if (record.upscaled_video_path) {
+      return res.status(409).json({ error: 'Este video ya tiene una versión escalada.' });
+    }
+
+    // Idempotente: si ya hay un upscaling en curso (el usuario cerró la pestaña
+    // y volvió), devolvemos esa misma predicción en vez de arrancar —y cobrar—
+    // una segunda.
+    if (record.upscale_status === 'processing' && record.upscale_operation) {
+      return res.json({
+        predictionId: record.upscale_operation,
+        targetResolution: record.upscale_resolution ?? resolution,
+        resumed: true,
+      });
+    }
+
+    // Replicate descarga el origen por HTTP, así que necesita una URL firmada.
+    const sourceUrl = await createSourceUrl(client, record.video_path);
+
+    let predictionId: string;
+    try {
+      ({ predictionId } = await upscaleVideo('topaz', { videoUrl: sourceUrl, targetResolution: resolution }));
+    } catch (startErr: any) {
+      await markUpscaleFailed(client, videoRenderId, startErr.message ?? 'No se pudo iniciar el upscaling.').catch(() => {});
+      throw startErr;
+    }
+
+    await markUpscaleStarted(client, videoRenderId, predictionId, resolution);
+    res.json({ predictionId, targetResolution: resolution });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message ?? 'Error interno.' });
+  }
+});
+
+// Consulta el estado del upscaling. Cuando termina, sube el video escalado a
+// Storage junto al original y devuelve su URL firmada.
+app.get('/api/video/upscale/status', requireAuth, async (req: AuthedRequest, res) => {
+  try {
+    const predictionId = req.query.operation as string;
+    const videoRenderId = req.query.videoRenderId as string;
+    if (!predictionId) return res.status(400).json({ error: 'Falta el parámetro operation.' });
+    if (!videoRenderId) return res.status(400).json({ error: 'Falta el parámetro videoRenderId.' });
+
+    const client = createUserClient(req.accessToken!);
+
+    // Si el 4K ya se guardó (p. ej. dos pestañas polleando), devuélvelo tal cual
+    // en vez de volver a descargar y subir una copia.
+    const existing = await getVideoRender(client, videoRenderId);
+    if (!existing) return res.status(404).json({ error: 'No se encontró el video.' });
+    if (existing.upscaled_video_path) {
+      const url = await createPlaybackUrl(client, existing.upscaled_video_path);
+      return res.json({ done: true, url, resolution: existing.upscale_resolution });
+    }
+
+    const result = await checkVideoUpscale(predictionId);
+    if (!result.done) return res.json({ done: false });
+
+    if (result.error) {
+      await markUpscaleFailed(client, videoRenderId, result.error).catch(() => {});
+      return res.json({ done: true, error: result.error });
+    }
+    if (!result.buffer) {
+      const message = 'El upscaler no devolvió contenido de video.';
+      await markUpscaleFailed(client, videoRenderId, message).catch(() => {});
+      return res.json({ done: true, error: message });
+    }
+
+    const updated = await saveUpscaledVideo(
+      client,
+      req.userId!,
+      videoRenderId,
+      result.buffer,
+      result.mimeType || 'video/mp4',
+      existing.upscale_resolution ?? '4k',
+    );
+
+    res.json({ done: true, url: updated.upscaled_url, resolution: updated.upscale_resolution });
   } catch (err: any) {
     res.status(500).json({ error: err.message ?? 'Error interno.' });
   }

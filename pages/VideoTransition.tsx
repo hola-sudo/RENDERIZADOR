@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { detectSceneElements, startVideoTransition, pollVideoUntilDone } from '../services/apiService';
+import { detectSceneElements, startVideoTransition, pollVideoUntilDone, upscaleVideoToEnd } from '../services/apiService';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { CAMERA_MOVEMENT_OPTIONS, type CameraMovement } from '../types';
 
@@ -44,12 +44,18 @@ const VideoTransition: React.FC = () => {
   const [isDetecting, setIsDetecting] = useState(false);
 
   const [cameraMovement, setCameraMovement] = useState<CameraMovement>('dolly_in');
-  const [upscale4k, setUpscale4k] = useState(false);
 
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoRenderId, setVideoRenderId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // Upscaling: proceso aparte sobre el video 1080p ya guardado.
+  const [upscaledUrl, setUpscaledUrl] = useState<string | null>(null);
+  const [isUpscaling, setIsUpscaling] = useState(false);
+  const [upscaleProgress, setUpscaleProgress] = useState('');
+  const [upscaleError, setUpscaleError] = useState<string | null>(null);
 
   const startFileInputRef = useRef<HTMLInputElement>(null);
   const endFileInputRef = useRef<HTMLInputElement>(null);
@@ -83,7 +89,7 @@ const VideoTransition: React.FC = () => {
         const url = URL.createObjectURL(resized);
         if (which === 'start') { setStartFrame(resized); setStartFramePreview(url); }
         else { setEndFrame(resized); setEndFramePreview(url); }
-        setSceneDescription(''); setVideoUrl(null); setError(null);
+        setSceneDescription(''); setVideoUrl(null); setVideoRenderId(null); setUpscaledUrl(null); setError(null);
       } catch (err: any) {
         setError(`Error al optimizar: ${err.message}`);
       } finally { setIsLoading(false); setProgress(''); }
@@ -108,34 +114,51 @@ const VideoTransition: React.FC = () => {
   // ── Generate ──────────────────────────────────────────────────────────────
   const handleGenerate = useCallback(async () => {
     if (!startFrame || !endFrame) return;
-    setIsLoading(true); setVideoUrl(null); setError(null);
+    setIsLoading(true); setVideoUrl(null); setVideoRenderId(null);
+    setUpscaledUrl(null); setUpscaleError(null); setUpscaleProgress('');
+    setError(null);
     setProgress('Enviando frames a Veo...');
     try {
-      const { operationName } = await startVideoTransition(
-        startFrame, endFrame, cameraMovement, sceneDescription,
-        upscale4k ? '4k' : '1080p',
-      );
+      const { operationName } = await startVideoTransition(startFrame, endFrame, cameraMovement, sceneDescription);
       const result = await pollVideoUntilDone(operationName, cameraMovement, sceneDescription, setProgress);
       if (result.error) {
         setError(result.error);
         setProgress('');
       } else {
         setVideoUrl(result.url);
+        setVideoRenderId(result.videoRenderId);
         setProgress('Video completado.');
       }
     } catch (err: any) {
       setError(`Error al generar: ${err.message}`);
       setProgress('');
     } finally { setIsLoading(false); }
-  }, [startFrame, endFrame, cameraMovement, sceneDescription, upscale4k]);
+  }, [startFrame, endFrame, cameraMovement, sceneDescription]);
+
+  // ── Upscale (proceso aparte) ──────────────────────────────────────────────
+  const handleUpscale = useCallback(async () => {
+    if (!videoRenderId) return;
+    setIsUpscaling(true); setUpscaleError(null); setUpscaledUrl(null);
+    try {
+      const result = await upscaleVideoToEnd(videoRenderId, setUpscaleProgress);
+      if (result.error) {
+        setUpscaleError(result.error);
+        setUpscaleProgress('');
+      } else {
+        setUpscaledUrl(result.url);
+        setUpscaleProgress('Upscale a 4K completado.');
+      }
+    } finally { setIsUpscaling(false); }
+  }, [videoRenderId]);
 
   const handleStartNew = useCallback(() => {
     setStartFrame(null); setStartFramePreview(null);
     setEndFrame(null); setEndFramePreview(null);
     if (startFileInputRef.current) startFileInputRef.current.value = '';
     if (endFileInputRef.current) endFileInputRef.current.value = '';
-    setSceneDescription(''); setCameraMovement('dolly_in'); setUpscale4k(false);
-    setVideoUrl(null); setError(null); setProgress(''); setCurrentStep(1);
+    setSceneDescription(''); setCameraMovement('dolly_in');
+    setVideoUrl(null); setVideoRenderId(null); setError(null); setProgress(''); setCurrentStep(1);
+    setUpscaledUrl(null); setUpscaleError(null); setUpscaleProgress(''); setIsUpscaling(false);
   }, []);
 
   // ── Step content ──────────────────────────────────────────────────────────
@@ -234,27 +257,15 @@ const VideoTransition: React.FC = () => {
           <div className="space-y-5">
             <div>
               <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Generar Video de Transición</h2>
-              <p className="text-stone-500 dark:text-stone-400 text-sm">Veo 3.1 genera 8s de video en {upscale4k ? '4K' : '1080p'}. Puede tardar hasta 6 minutos.</p>
+              <p className="text-stone-500 dark:text-stone-400 text-sm">Veo 3.1 genera 8s de video en 1080p. Puede tardar hasta 6 minutos.</p>
             </div>
             <div className="bg-stone-100 dark:bg-stone-800 rounded-lg p-4 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-stone-500">Start Frame</span><span className="text-stone-700 dark:text-stone-300 truncate ml-4 max-w-[60%] text-right">{startFrame?.name ?? '—'}</span></div>
               <div className="flex justify-between"><span className="text-stone-500">End Frame</span><span className="text-stone-700 dark:text-stone-300 truncate ml-4 max-w-[60%] text-right">{endFrame?.name ?? '—'}</span></div>
               <div className="flex justify-between"><span className="text-stone-500">Movimiento</span><span className="text-stone-700 dark:text-stone-300">{CAMERA_MOVEMENT_OPTIONS.find(o => o.value === cameraMovement)?.label}</span></div>
-              <div className="flex justify-between"><span className="text-stone-500">Resolución</span><span className="text-stone-700 dark:text-stone-300">{upscale4k ? '4K' : '1080p'}</span></div>
+              <div className="flex justify-between"><span className="text-stone-500">Resolución</span><span className="text-stone-700 dark:text-stone-300">1080p (1920×1080)</span></div>
             </div>
-            <label className={`flex items-start gap-3 p-4 rounded-lg border transition ${isLoading ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${
-              upscale4k
-                ? 'bg-stone-800/5 dark:bg-stone-200/5 border-stone-800 dark:border-stone-200'
-                : 'bg-white dark:bg-stone-950 border-stone-300 dark:border-stone-700 hover:border-stone-400 dark:hover:border-stone-600'
-            }`}>
-              <input type="checkbox" checked={upscale4k} onChange={(e) => setUpscale4k(e.target.checked)} disabled={isLoading}
-                className="mt-0.5 w-4 h-4 accent-stone-800 dark:accent-stone-200 shrink-0" />
-              <span className="text-sm">
-                <span className="block font-semibold text-stone-800 dark:text-stone-200">Resolución 4K</span>
-                <span className="block text-stone-500 dark:text-stone-400 mt-0.5">Veo genera el video directamente en 4K (3840×2160), con mejores texturas y nitidez. Consume créditos adicionales y puede tardar más.</span>
-              </span>
-            </label>
-            <p className="text-xs text-stone-400">Costo aproximado por intento: $1.20–$3.20 USD (Veo cobra por segundo generado){upscale4k ? '; en 4K el costo por segundo es mayor' : ''}.</p>
+            <p className="text-xs text-stone-400">Costo aproximado por intento: $1.20–$3.20 USD (Veo cobra por segundo generado). Si necesitas 4K, hazlo después con el upscaler: es un proceso aparte y solo se cobra cuando lo pides.</p>
             <button onClick={handleGenerate} disabled={isLoading || !startFrame || !endFrame}
               className="w-full py-4 rounded-lg bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 text-base font-bold hover:bg-stone-700 dark:hover:bg-stone-300 transition disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 dark:disabled:bg-stone-700 dark:disabled:text-stone-500">
               {isLoading ? 'Generando video...' : 'Generar video'}
@@ -268,10 +279,46 @@ const VideoTransition: React.FC = () => {
             {videoUrl && (
               <div className="space-y-2 pt-2 border-t border-stone-200 dark:border-stone-700">
                 <p className="text-xs text-stone-400">*Los videos generados por IA pueden contener imperfecciones.</p>
-                <a href={videoUrl} download="video_transition.mp4"
+                <a href={videoUrl} download="video_transition_1080p.mp4"
                   className="block text-center py-2.5 px-4 bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-800 dark:text-stone-200 text-sm font-semibold rounded-lg transition">
-                  Descargar
+                  Descargar 1080p
                 </a>
+
+                {/* ── Upscale: proceso aparte sobre el video ya generado ── */}
+                <div className="mt-4 p-4 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950 space-y-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-stone-800 dark:text-stone-200">Mejorar calidad a 4K</h3>
+                    <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
+                      Proceso independiente: toma el video 1080p ya generado y lo escala a 3840×2160 con Topaz, recuperando nitidez y detalle sin volver a generar la transición. Tarda unos minutos y tiene su propio costo (~$0.10 USD por segundo de video).
+                    </p>
+                  </div>
+
+                  {upscaledUrl ? (
+                    <a href={upscaledUrl} download="video_transition_4k.mp4"
+                      className="block text-center py-2.5 px-4 bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 hover:bg-stone-700 dark:hover:bg-stone-300 text-sm font-semibold rounded-lg transition">
+                      Descargar 4K
+                    </a>
+                  ) : (
+                    <button onClick={handleUpscale} disabled={isUpscaling || !videoRenderId}
+                      className="w-full py-2.5 px-4 rounded-lg bg-stone-700 hover:bg-stone-600 text-white text-sm font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed">
+                      {isUpscaling ? 'Escalando a 4K...' : 'Escalar a 4K'}
+                    </button>
+                  )}
+
+                  {!videoRenderId && !upscaledUrl && (
+                    <p className="text-xs text-stone-400">El video no quedó guardado en el historial, así que no se puede escalar. Genera la transición de nuevo.</p>
+                  )}
+                  {isUpscaling && upscaleProgress && (
+                    <div className="flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400"><LoadingSpinner /><span>{upscaleProgress}</span></div>
+                  )}
+                  {!isUpscaling && upscaledUrl && upscaleProgress && (
+                    <p className="text-xs text-stone-500 dark:text-stone-400">{upscaleProgress}</p>
+                  )}
+                  {!isUpscaling && upscaleError && (
+                    <p className="text-red-700 dark:text-red-300 text-sm bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg p-3">{upscaleError}</p>
+                  )}
+                </div>
+
                 <button onClick={handleStartNew} className="w-full py-2.5 bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200 text-sm font-semibold rounded-lg transition">Nueva transición</button>
               </div>
             )}
@@ -363,7 +410,10 @@ const VideoTransition: React.FC = () => {
       <div className="w-[40%] h-full flex flex-col border-l border-stone-200 dark:border-stone-800 bg-stone-100 dark:bg-stone-950">
         <div className="flex-1 min-h-0 flex items-center justify-center p-6">
           {videoUrl ? (
-            <video src={videoUrl} controls autoPlay loop className="max-w-full max-h-full rounded-lg shadow-sm" />
+            <div className="w-full space-y-2">
+              <video src={upscaledUrl ?? videoUrl} controls autoPlay loop className="max-w-full max-h-full rounded-lg shadow-sm mx-auto" />
+              <p className="text-center text-xs text-stone-400">{upscaledUrl ? 'Versión 4K (escalada)' : '1080p'}</p>
+            </div>
           ) : startFramePreview || endFramePreview ? (
             <div className="grid grid-cols-1 gap-3 w-full">
               {startFramePreview && <img src={startFramePreview} alt="Start Frame" className="max-w-full max-h-full object-contain rounded-lg shadow-sm" />}

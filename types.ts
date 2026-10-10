@@ -38,12 +38,20 @@ export const CAMERA_MOVEMENT_OPTIONS: { value: CameraMovement; label: string }[]
   { value: 'pan_right', label: 'Pan Derecha — barrido horizontal' },
 ];
 
+// Estado del proceso aparte de upscaling (null = nunca se pidió).
+export type UpscaleStatus = 'processing' | 'done' | 'error';
+
 export interface VideoRenderItem {
   id: string;
   url: string | null;
   start_description: string | null;
   camera_movement: string | null;
   duration_seconds: number | null;
+  resolution: string | null;
+  upscaled_url: string | null;
+  upscale_resolution: string | null;
+  upscale_status: UpscaleStatus | null;
+  upscale_error: string | null;
   created_at: string;
 }
 

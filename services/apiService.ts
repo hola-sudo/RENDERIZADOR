@@ -111,15 +111,12 @@ export const listRenders = async (): Promise<RenderItem[]> => {
 
 // ── Video de transición (Veo) ────────────────────────────────────────────────
 
-export type VideoResolution = '1080p' | '4k';
-
 /** Sube ambos frames y arranca la generación de video en el backend. Devuelve el id de operación para pollear. */
 export const startVideoTransition = async (
   startFrame: File,
   endFrame: File,
   cameraMovement: CameraMovement,
   sceneDescription: string,
-  resolution: VideoResolution = '1080p',
 ): Promise<{ operationName: string }> => {
   const [start, end] = await Promise.all([fileToBase64(startFrame), fileToBase64(endFrame)]);
   const json = await authedPost('/api/video/start', {
@@ -127,7 +124,6 @@ export const startVideoTransition = async (
     endFrame: end,
     cameraMovement,
     sceneDescription,
-    resolution,
   });
   return { operationName: json.operationName };
 };
@@ -136,7 +132,7 @@ const checkVideoStatusOnce = async (
   operationName: string,
   cameraMovement: CameraMovement,
   sceneDescription: string,
-): Promise<{ done: boolean; url?: string | null; error?: string }> => {
+): Promise<{ done: boolean; url?: string | null; videoRenderId?: string; error?: string }> => {
   const params = new URLSearchParams({ operation: operationName, cameraMovement, sceneDescription });
   return authedGet(`/api/video/status?${params.toString()}`);
 };
@@ -147,16 +143,76 @@ export const pollVideoUntilDone = async (
   cameraMovement: CameraMovement,
   sceneDescription: string,
   onProgress?: (message: string) => void,
-): Promise<{ url: string | null; error: string | null }> => {
+): Promise<{ url: string | null; videoRenderId: string | null; error: string | null }> => {
   const startedAt = Date.now();
   for (;;) {
     const elapsed = Math.round((Date.now() - startedAt) / 1000);
     onProgress?.(`Generando video... (${elapsed}s, puede tardar hasta 6 minutos)`);
     const status = await checkVideoStatusOnce(operationName, cameraMovement, sceneDescription);
     if (status.done) {
-      return status.error ? { url: null, error: status.error } : { url: status.url ?? null, error: null };
+      return status.error
+        ? { url: null, videoRenderId: null, error: status.error }
+        : { url: status.url ?? null, videoRenderId: status.videoRenderId ?? null, error: null };
     }
     await new Promise((resolve) => setTimeout(resolve, 10000));
+  }
+};
+
+// ── Upscaling de video (proceso aparte, Topaz vía Replicate) ────────────────
+
+export type UpscaleResolution = '1080p' | '4k';
+
+/**
+ * Arranca el upscaling de un video YA generado. No vuelve a llamar a Veo: toma
+ * el 1080p guardado en el historial y lo manda al upscaler. Devuelve el id de
+ * la predicción para pollear.
+ */
+export const startVideoUpscale = async (
+  videoRenderId: string,
+  targetResolution: UpscaleResolution = '4k',
+): Promise<{ predictionId: string }> => {
+  const json = await authedPost('/api/video/upscale/start', { videoRenderId, targetResolution });
+  return { predictionId: json.predictionId };
+};
+
+const checkUpscaleStatusOnce = async (
+  predictionId: string,
+  videoRenderId: string,
+): Promise<{ done: boolean; url?: string | null; error?: string }> => {
+  const params = new URLSearchParams({ operation: predictionId, videoRenderId });
+  return authedGet(`/api/video/upscale/status?${params.toString()}`);
+};
+
+/** Hace polling cada ~15s hasta que el upscaling termine (puede tardar varios minutos). */
+export const pollUpscaleUntilDone = async (
+  predictionId: string,
+  videoRenderId: string,
+  onProgress?: (message: string) => void,
+): Promise<{ url: string | null; error: string | null }> => {
+  const startedAt = Date.now();
+  for (;;) {
+    const elapsed = Math.round((Date.now() - startedAt) / 1000);
+    onProgress?.(`Escalando video... (${elapsed}s)`);
+    const status = await checkUpscaleStatusOnce(predictionId, videoRenderId);
+    if (status.done) {
+      return status.error ? { url: null, error: status.error } : { url: status.url ?? null, error: null };
+    }
+    await new Promise((resolve) => setTimeout(resolve, 15000));
+  }
+};
+
+/** Atajo: arranca el upscaling y espera a que termine. */
+export const upscaleVideoToEnd = async (
+  videoRenderId: string,
+  onProgress?: (message: string) => void,
+  targetResolution: UpscaleResolution = '4k',
+): Promise<{ url: string | null; error: string | null }> => {
+  try {
+    onProgress?.('Enviando el video al upscaler...');
+    const { predictionId } = await startVideoUpscale(videoRenderId, targetResolution);
+    return pollUpscaleUntilDone(predictionId, videoRenderId, onProgress);
+  } catch (err: any) {
+    return { url: null, error: err.message ?? 'Error desconocido al escalar.' };
   }
 };
 
