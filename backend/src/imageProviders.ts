@@ -15,8 +15,8 @@ import {
 
 // Lista blanca de modelos de imagen. El cliente manda la clave, nunca el ID.
 export const RENDER_MODEL_IDS = {
-  standard: 'gemini-3.1-flash-image-preview', // Nano Banana 2: rápido y barato
-  pro: 'gemini-3-pro-image-preview', // Nano Banana Pro: mayor fidelidad, más lento y caro
+  standard: 'gemini-3.1-flash-image', // Nano Banana 2 (GA): rápido y barato
+  pro: 'gemini-3-pro-image', // Nano Banana Pro (GA): mayor fidelidad, más lento y caro
 } as const;
 export type RenderModelKey = keyof typeof RENDER_MODEL_IDS;
 

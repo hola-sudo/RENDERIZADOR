@@ -102,7 +102,7 @@ app.get('/api/renders', requireAuth, async (req: AuthedRequest, res) => {
   }
 });
 
-// ── Video de transición (Veo) ────────────────────────────────────────────────
+// ── Video de transición (Gemini Omni Flash) ─────────────────────────────────
 const CAMERA_MOVEMENTS = ['dolly_in', 'dolly_out', 'zoom_in', 'zoom_out', 'pan_left', 'pan_right'] as const;
 type CameraMovement = (typeof CAMERA_MOVEMENTS)[number];
 
@@ -115,7 +115,7 @@ const CAMERA_MOVEMENT_INSTRUCTIONS: Record<CameraMovement, string> = {
   pan_right: 'Smooth horizontal camera pan to the right.',
 };
 
-const buildVeoPrompt = (movement: CameraMovement, sceneDescription: string): string => `
+const buildVideoPrompt = (movement: CameraMovement, sceneDescription: string): string => `
 Photorealistic architectural/event rendering video transition connecting the start frame to the end frame.
 ${CAMERA_MOVEMENT_INSTRUCTIONS[movement]}
 
@@ -125,7 +125,7 @@ ${sceneDescription.trim() ? `Scene materials and constraints to respect exactly:
 The motion must be smooth, natural and high-fidelity, like a real architectural walkthrough camera move.
 `.trim();
 
-// Arranca la generación de video en Veo. Responde rápido con el id de operación;
+// Arranca la generación de video. Responde rápido con el id de la interacción;
 // el cliente hace polling en /api/video/status hasta que termine (puede tardar minutos).
 app.post('/api/video/start', requireAuth, async (req: AuthedRequest, res) => {
   try {
@@ -134,10 +134,10 @@ app.post('/api/video/start', requireAuth, async (req: AuthedRequest, res) => {
       return res.status(400).json({ error: 'Faltan el Start Frame y/o el End Frame.' });
     }
     const movement: CameraMovement = CAMERA_MOVEMENTS.includes(cameraMovement) ? cameraMovement : 'dolly_in';
-    const prompt = buildVeoPrompt(movement, sceneDescription ?? '');
+    const prompt = buildVideoPrompt(movement, sceneDescription ?? '');
 
     // Siempre 1080p. El 4K se obtiene después con el upscaler (/api/video/upscale/*).
-    const { operationName } = await generateVideoTransition('veo', {
+    const { operationName } = await generateVideoTransition('gemini-omni', {
       startFrame,
       endFrame,
       prompt,
@@ -148,8 +148,8 @@ app.post('/api/video/start', requireAuth, async (req: AuthedRequest, res) => {
   }
 });
 
-// Consulta el estado de una operación de Veo. Cuando termina, guarda el video
-// en Storage/DB y devuelve la URL firmada.
+// Consulta el estado de la generación. Cuando termina, guarda el video en
+// Storage/DB y devuelve la URL firmada.
 app.get('/api/video/status', requireAuth, async (req: AuthedRequest, res) => {
   try {
     const operationName = req.query.operation as string;
@@ -158,7 +158,7 @@ app.get('/api/video/status', requireAuth, async (req: AuthedRequest, res) => {
     const result = await checkVideoGeneration(operationName);
     if (!result.done) return res.json({ done: false });
     if (result.error) return res.json({ done: true, error: result.error });
-    if (!result.buffer) return res.json({ done: true, error: 'Veo no devolvió contenido de video.' });
+    if (!result.buffer) return res.json({ done: true, error: 'El modelo no devolvió contenido de video.' });
 
     const cameraMovement = (req.query.cameraMovement as string) ?? '';
     const sceneDescription = (req.query.sceneDescription as string) ?? '';
@@ -177,7 +177,7 @@ app.get('/api/video/status', requireAuth, async (req: AuthedRequest, res) => {
 });
 
 // ── Upscaling de video (proceso aparte) ─────────────────────────────────────
-// El video de Veo siempre queda en 1080p. Subirlo a 4K es un segundo paso
+// El video generado siempre queda en 1080p. Subirlo a 4K es un segundo paso
 // explícito sobre un video YA guardado: no toca la generación ni se cobra si
 // el usuario no lo pide. Mismo patrón start/status porque también tarda minutos.
 const UPSCALE_RESOLUTIONS = ['1080p', '4k'] as const;

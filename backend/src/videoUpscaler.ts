@@ -1,8 +1,8 @@
 // Upscaling de video como PROCESO APARTE del render.
 //
-// El video final de Veo siempre sale en 1080p (ver videoProviders.ts). Subirlo
+// El video final siempre sale en 1080p (ver videoProviders.ts). Subirlo
 // a 4K es un segundo paso opcional que el usuario dispara a mano sobre un video
-// ya guardado en Storage, con su propio ciclo start/check — igual que Veo, el
+// ya guardado en Storage, con su propio ciclo start/check — igual que la generación, el
 // upscaling tarda minutos y no puede vivir dentro de un request HTTP.
 //
 // Motor: Topaz Video Upscale en Replicate. Recibe una URL pública del video
@@ -20,7 +20,7 @@ const REPLICATE_API = 'https://api.replicate.com/v1';
 // /v1/models/{owner}/{name}/predictions (no hace falta fijar un version hash).
 const UPSCALE_MODEL = process.env.REPLICATE_UPSCALE_MODEL ?? 'topazlabs/video-upscale';
 
-// Veo entrega 24 fps; el default del modelo es 30 y reinterpolaría el metraje,
+// La generación entrega 24 fps; el default del upscaler es 30 y reinterpolaría el metraje,
 // así que lo fijamos para conservar la cadencia original.
 const DEFAULT_TARGET_FPS = Number(process.env.REPLICATE_UPSCALE_FPS) || 24;
 
@@ -53,7 +53,7 @@ export interface StartUpscaleParams {
   /** URL pública (o firmada) del video de origen. Replicate la descarga por su cuenta. */
   videoUrl: string;
   targetResolution?: UpscaleResolution; // default 4k
-  targetFps?: number; // default 24 (la cadencia de Veo)
+  targetFps?: number; // default 24 (la cadencia del video generado)
 }
 
 /** Arranca el upscaling y devuelve el id de la predicción para pollearla luego. */

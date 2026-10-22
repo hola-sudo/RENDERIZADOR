@@ -109,7 +109,7 @@ export const listRenders = async (): Promise<RenderItem[]> => {
   return json.renders ?? [];
 };
 
-// ── Video de transición (Veo) ────────────────────────────────────────────────
+// ── Video de transición (Gemini Omni Flash) ─────────────────────────────────
 
 /** Sube ambos frames y arranca la generación de video en el backend. Devuelve el id de operación para pollear. */
 export const startVideoTransition = async (
@@ -137,7 +137,7 @@ const checkVideoStatusOnce = async (
   return authedGet(`/api/video/status?${params.toString()}`);
 };
 
-/** Hace polling cada ~10s hasta que la operación de Veo termine (puede tardar hasta 6 minutos). */
+/** Hace polling cada ~10s hasta que la generación termine (puede tardar hasta 6 minutos). */
 export const pollVideoUntilDone = async (
   operationName: string,
   cameraMovement: CameraMovement,
@@ -163,7 +163,7 @@ export const pollVideoUntilDone = async (
 export type UpscaleResolution = '1080p' | '4k';
 
 /**
- * Arranca el upscaling de un video YA generado. No vuelve a llamar a Veo: toma
+ * Arranca el upscaling de un video YA generado. No vuelve a generar nada: toma
  * el 1080p guardado en el historial y lo manda al upscaler. Devuelve el id de
  * la predicción para pollear.
  */

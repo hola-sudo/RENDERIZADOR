@@ -117,7 +117,7 @@ const VideoTransition: React.FC = () => {
     setIsLoading(true); setVideoUrl(null); setVideoRenderId(null);
     setUpscaledUrl(null); setUpscaleError(null); setUpscaleProgress('');
     setError(null);
-    setProgress('Enviando frames a Veo...');
+    setProgress('Enviando frames al modelo...');
     try {
       const { operationName } = await startVideoTransition(startFrame, endFrame, cameraMovement, sceneDescription);
       const result = await pollVideoUntilDone(operationName, cameraMovement, sceneDescription, setProgress);
@@ -197,7 +197,7 @@ const VideoTransition: React.FC = () => {
           <div className="space-y-5">
             <div>
               <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Sube el Start Frame y el End Frame</h2>
-              <p className="text-stone-500 dark:text-stone-400 text-sm">Dos renders fotorrealistas de la misma escena. Veo generará el video que los conecta.</p>
+              <p className="text-stone-500 dark:text-stone-400 text-sm">Dos renders fotorrealistas de la misma escena. El modelo generará el video que los conecta.</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               {renderFrameSlot('start')}
@@ -257,7 +257,7 @@ const VideoTransition: React.FC = () => {
           <div className="space-y-5">
             <div>
               <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Generar Video de Transición</h2>
-              <p className="text-stone-500 dark:text-stone-400 text-sm">Veo 3.1 genera 8s de video en 1080p. Puede tardar hasta 6 minutos.</p>
+              <p className="text-stone-500 dark:text-stone-400 text-sm">Gemini Omni Flash genera 8s de video en 1080p. Puede tardar hasta 6 minutos.</p>
             </div>
             <div className="bg-stone-100 dark:bg-stone-800 rounded-lg p-4 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-stone-500">Start Frame</span><span className="text-stone-700 dark:text-stone-300 truncate ml-4 max-w-[60%] text-right">{startFrame?.name ?? '—'}</span></div>
@@ -265,7 +265,7 @@ const VideoTransition: React.FC = () => {
               <div className="flex justify-between"><span className="text-stone-500">Movimiento</span><span className="text-stone-700 dark:text-stone-300">{CAMERA_MOVEMENT_OPTIONS.find(o => o.value === cameraMovement)?.label}</span></div>
               <div className="flex justify-between"><span className="text-stone-500">Resolución</span><span className="text-stone-700 dark:text-stone-300">1080p (1920×1080)</span></div>
             </div>
-            <p className="text-xs text-stone-400">Costo aproximado por intento: $1.20–$3.20 USD (Veo cobra por segundo generado). Si necesitas 4K, hazlo después con el upscaler: es un proceso aparte y solo se cobra cuando lo pides.</p>
+            <p className="text-xs text-stone-400">Costo aproximado por intento: $1.20–$3.20 USD (se cobra por segundo generado). Si necesitas 4K, hazlo después con el upscaler: es un proceso aparte y solo se cobra cuando lo pides.</p>
             <button onClick={handleGenerate} disabled={isLoading || !startFrame || !endFrame}
               className="w-full py-4 rounded-lg bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 text-base font-bold hover:bg-stone-700 dark:hover:bg-stone-300 transition disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 dark:disabled:bg-stone-700 dark:disabled:text-stone-500">
               {isLoading ? 'Generando video...' : 'Generar video'}

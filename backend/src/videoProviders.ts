@@ -1,20 +1,22 @@
-// Generación de video de transición entre dos frames (Start/End) vía Veo 3.1.
+// Generación de video de transición entre dos frames (Start/End).
 // Igual que imageProviders.ts, aquí solo vive el "motor" de video; el prompt
 // (movimiento de cámara + descripción de materiales validada) se arma en index.ts.
 //
-// Veo es asíncrono: generateVideos arranca un "operation" que puede tardar
-// hasta ~6 minutos. Por eso el flujo es start/check separados en vez de una
-// sola llamada bloqueante (ver checkVideoGeneration).
-import { promises as fs } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { randomUUID } from 'node:crypto';
-import { GoogleGenAI, GenerateVideosOperation } from '@google/genai';
+// Motor: Gemini Omni Flash. Sustituye a Veo 3.1 Preview, que Google apagó el
+// 22 de octubre de 2026. La API es distinta a la de Veo:
+//   - `ai.interactions.create()` en vez de `ai.models.generateVideos()`
+//   - los frames van como items del array `input`, no en `config.lastFrame`
+//   - la duración se pide en lenguaje natural dentro del prompt (3-10s)
+//   - `response_format` define aspecto y resolución
+// Se corre con `background: true` para conservar el flujo start/check: la
+// generación tarda minutos y no cabe en un request HTTP (ver checkVideoGeneration).
+import { Buffer } from 'node:buffer';
+import { GoogleGenAI } from '@google/genai';
 import { type ImageInput } from './gemini.js';
 
-export type VideoProvider = 'veo';
+export type VideoProvider = 'gemini-omni';
 
-const VEO_MODEL = 'veo-3.1-fast-generate-preview';
+const VIDEO_MODEL = 'gemini-omni-1.1-flash';
 
 const getGeminiClient = (): GoogleGenAI => {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -22,38 +24,60 @@ const getGeminiClient = (): GoogleGenAI => {
   return new GoogleGenAI({ apiKey });
 };
 
-// El video final SIEMPRE se genera en 1080p: es la resolución nativa de Veo,
-// la más barata por segundo y la más estable. Subir a 4K es un proceso aparte
+// El video final SIEMPRE se genera en 1080p: subir a 4K es un proceso aparte
 // (ver videoUpscaler.ts) que corre sobre el video ya guardado.
+// Nota: Omni acepta '4k', pero lo entrega escalado, no generado nativamente.
 export const VIDEO_RESOLUTION = '1080p' as const;
+
+// Mime types que acepta un item de imagen en `input`. Los frames llegan como
+// JPEG (el front los recomprime), pero normalizamos por si acaso.
+type InputImageMimeType = 'image/png' | 'image/jpeg' | 'image/webp';
+
+const normalizeMimeType = (mimeType: string): InputImageMimeType => {
+  if (mimeType === 'image/png' || mimeType === 'image/webp') return mimeType;
+  return 'image/jpeg';
+};
 
 export interface StartVideoParams {
   startFrame: ImageInput;
   endFrame: ImageInput;
   prompt: string;
-  durationSeconds?: number; // default 8 (fijo mientras se usa interpolación first/last frame)
+  durationSeconds?: number; // default 8 (Omni acepta 3-10)
 }
 
-/** Arranca la generación en Veo y devuelve el nombre de la operación para poder pollearla luego. */
+/**
+ * Arranca la generación y devuelve el id de la interacción para pollearla luego.
+ * El nombre `operationName` se mantiene para no romper el contrato HTTP con el
+ * front, pero ahora lo que viaja es un `Interaction.id`.
+ */
 export const startVideoGeneration = async (p: StartVideoParams): Promise<{ operationName: string }> => {
   const ai = getGeminiClient();
+  const duration = p.durationSeconds ?? 8;
 
-  const operation = await ai.models.generateVideos({
-    model: VEO_MODEL,
-    prompt: p.prompt,
-    image: { imageBytes: p.startFrame.data, mimeType: p.startFrame.mimeType },
-    config: {
-      lastFrame: { imageBytes: p.endFrame.data, mimeType: p.endFrame.mimeType },
-      durationSeconds: p.durationSeconds ?? 8,
-      aspectRatio: '16:9',
+  // Omni no tiene parámetro de duración: se pide en el prompt.
+  const prompt = `${p.prompt}\n\nDuration: exactly ${duration} seconds.`;
+
+  const interaction = await ai.interactions.create({
+    model: VIDEO_MODEL,
+    background: true,
+    input: [
+      // El orden importa: el primer item es el primer frame y el segundo el último.
+      { type: 'image', data: p.startFrame.data, mime_type: normalizeMimeType(p.startFrame.mimeType) },
+      { type: 'image', data: p.endFrame.data, mime_type: normalizeMimeType(p.endFrame.mimeType) },
+      { type: 'text', text: prompt },
+    ],
+    response_format: {
+      type: 'video',
+      aspect_ratio: '16:9',
       resolution: VIDEO_RESOLUTION,
-      // Nota: `generateAudio` solo existe en Vertex AI; la API de Gemini lo
-      // rechaza y Veo 3.1 siempre genera audio ahí.
+      // Un 1080p de 8s pesa bastante más que los 4MB que admite la entrega
+      // inline en base64, así que pedimos URI y lo descargamos nosotros.
+      delivery: 'uri',
     },
   });
 
-  if (!operation.name) throw new Error('Veo no devolvió un identificador de operación.');
-  return { operationName: operation.name };
+  if (!interaction.id) throw new Error('Gemini Omni no devolvió un identificador de interacción.');
+  return { operationName: interaction.id };
 };
 
 export interface CheckVideoResult {
@@ -63,46 +87,55 @@ export interface CheckVideoResult {
   error?: string;
 }
 
-/** Consulta el estado de una operación de Veo. Si terminó, descarga el video a un Buffer. */
-export const checkVideoGeneration = async (operationName: string): Promise<CheckVideoResult> => {
-  const ai = getGeminiClient();
-
-  // El SDK llama internamente a `operation._fromAPIResponse(...)` (método del
-  // prototipo de GenerateVideosOperation) para reconstruir el resultado, así
-  // que no basta un objeto plano con `name` — hace falta una instancia real
-  // de la clase. Solo necesita el `name`, por eso esto funciona aunque el
-  // start y el check ocurran en requests HTTP distintas (stateless).
-  const operation = await ai.operations.getVideosOperation({
-    operation: Object.assign(new GenerateVideosOperation(), { name: operationName }),
+/** Descarga el video entregado por URI. Si es un endpoint de la API, necesita la key. */
+const downloadFromUri = async (uri: string): Promise<{ buffer: Buffer; mimeType: string }> => {
+  const res = await fetch(uri, {
+    headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY?.trim() ?? '' },
   });
-
-  if (!operation.done) return { done: false };
-
-  if (operation.error) {
-    const message = typeof operation.error.message === 'string' ? operation.error.message : 'Error generando el video en Veo.';
-    return { done: true, error: message };
-  }
-
-  const video = operation.response?.generatedVideos?.[0]?.video;
-  if (!video) return { done: true, error: 'Veo no devolvió ningún video.' };
-
-  const tmpPath = join(tmpdir(), `veo-${randomUUID()}.mp4`);
-  try {
-    await ai.files.download({ file: video, downloadPath: tmpPath });
-    const buffer = await fs.readFile(tmpPath);
-    return { done: true, buffer, mimeType: video.mimeType || 'video/mp4' };
-  } finally {
-    await fs.unlink(tmpPath).catch(() => {});
-  }
+  if (!res.ok) throw new Error(`No se pudo descargar el video generado (HTTP ${res.status}).`);
+  const mimeType = res.headers.get('content-type') ?? 'video/mp4';
+  return {
+    buffer: Buffer.from(await res.arrayBuffer()),
+    mimeType: mimeType.startsWith('video/') ? mimeType : 'video/mp4',
+  };
 };
 
-// ── Dispatcher (hoy solo 'veo'; deja el hueco listo para otros motores) ──
+/** Consulta el estado de una interacción. Si terminó, deja el video en un Buffer. */
+export const checkVideoGeneration = async (interactionId: string): Promise<CheckVideoResult> => {
+  const ai = getGeminiClient();
+  const interaction = await ai.interactions.get(interactionId);
+
+  if (interaction.status === 'in_progress' || interaction.status === 'requires_action') {
+    return { done: false };
+  }
+
+  if (interaction.status !== 'completed') {
+    // 'failed' | 'cancelled' | 'incomplete'
+    return { done: true, error: `La generación del video terminó en estado "${interaction.status}".` };
+  }
+
+  const video = interaction.outputs?.find((output) => output.type === 'video');
+  if (!video) return { done: true, error: 'Gemini Omni no devolvió ningún video.' };
+
+  // Con delivery:'uri' llega `uri`; si el video fuera pequeño podría venir
+  // inline en `data`, así que soportamos los dos casos.
+  if (video.data) {
+    return { done: true, buffer: Buffer.from(video.data, 'base64'), mimeType: video.mime_type || 'video/mp4' };
+  }
+  if (video.uri) {
+    const { buffer, mimeType } = await downloadFromUri(video.uri);
+    return { done: true, buffer, mimeType: video.mime_type || mimeType };
+  }
+  return { done: true, error: 'Gemini Omni devolvió un video vacío.' };
+};
+
+// ── Dispatcher (hoy solo Omni; deja el hueco listo para otros motores) ──
 export const generateVideoTransition = async (
   provider: VideoProvider,
   params: StartVideoParams,
 ): Promise<{ operationName: string }> => {
   switch (provider) {
-    case 'veo':
+    case 'gemini-omni':
     default:
       return startVideoGeneration(params);
   }
