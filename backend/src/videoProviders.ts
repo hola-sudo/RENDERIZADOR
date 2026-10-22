@@ -6,8 +6,11 @@
 // 22 de octubre de 2026. La API es distinta a la de Veo:
 //   - `ai.interactions.create()` en vez de `ai.models.generateVideos()`
 //   - los frames van como items del array `input`, no en `config.lastFrame`
-//   - la duración se pide en lenguaje natural dentro del prompt (3-10s)
-//   - `response_format` define aspecto y resolución
+//   - `response_format` define aspecto, resolución, duración y entrega
+//   - el video sale en `interaction.output_video`
+//
+// Requiere @google/genai >= 2.0.0: la API rechaza el esquema de Interactions
+// de las versiones 1.x con un 400 "legacy Interactions API schema".
 // Se corre con `background: true` para conservar el flujo start/check: la
 // generación tarda minutos y no cabe en un request HTTP (ver checkVideoGeneration).
 import { Buffer } from 'node:buffer';
@@ -54,9 +57,6 @@ export const startVideoGeneration = async (p: StartVideoParams): Promise<{ opera
   const ai = getGeminiClient();
   const duration = p.durationSeconds ?? 8;
 
-  // Omni no tiene parámetro de duración: se pide en el prompt.
-  const prompt = `${p.prompt}\n\nDuration: exactly ${duration} seconds.`;
-
   const interaction = await ai.interactions.create({
     model: VIDEO_MODEL,
     background: true,
@@ -64,12 +64,14 @@ export const startVideoGeneration = async (p: StartVideoParams): Promise<{ opera
       // El orden importa: el primer item es el primer frame y el segundo el último.
       { type: 'image', data: p.startFrame.data, mime_type: normalizeMimeType(p.startFrame.mimeType) },
       { type: 'image', data: p.endFrame.data, mime_type: normalizeMimeType(p.endFrame.mimeType) },
-      { type: 'text', text: prompt },
+      { type: 'text', text: p.prompt },
     ],
     response_format: {
       type: 'video',
       aspect_ratio: '16:9',
       resolution: VIDEO_RESOLUTION,
+      // Formato de duración de Google (protobuf Duration): "8s".
+      duration: `${duration}s`,
       // Un 1080p de 8s pesa bastante más que los 4MB que admite la entrega
       // inline en base64, así que pedimos URI y lo descargamos nosotros.
       delivery: 'uri',
@@ -114,7 +116,8 @@ export const checkVideoGeneration = async (interactionId: string): Promise<Check
     return { done: true, error: `La generación del video terminó en estado "${interaction.status}".` };
   }
 
-  const video = interaction.outputs?.find((output) => output.type === 'video');
+  // En 2.x el SDK expone el video listo en `output_video` (antes `outputs`).
+  const video = interaction.output_video;
   if (!video) return { done: true, error: 'Gemini Omni no devolvió ningún video.' };
 
   // Con delivery:'uri' llega `uri`; si el video fuera pequeño podría venir
