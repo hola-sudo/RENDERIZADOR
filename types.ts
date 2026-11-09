@@ -13,9 +13,10 @@ export enum LightingType {
 // Modelo de imagen para el render final. El backend traduce la clave al ID de Gemini.
 export type RenderModel = 'standard' | 'pro';
 
+// Solo Estándar: la opción Pro se retiró de la interfaz (el backend sigue
+// aceptando 'pro' si alguna vez se vuelve a ofrecer).
 export const RENDER_MODEL_OPTIONS: { value: RenderModel; label: string }[] = [
   { value: 'standard', label: 'Estándar — rápido (Nano Banana 2)' },
-  { value: 'pro', label: 'Pro — máxima fidelidad, más lento (Nano Banana Pro)' },
 ];
 
 // Resolución del render final.

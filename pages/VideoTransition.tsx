@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
-import { detectSceneElements, startVideoTransition, pollVideoUntilDone, upscaleVideoToEnd } from '../services/apiService';
+import { detectSceneElements, startVideoTransition, pollVideoUntilDone } from '../services/apiService';
+import { downloadFromUrl } from '../services/download';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { CAMERA_MOVEMENT_OPTIONS, type CameraMovement } from '../types';
 
@@ -51,11 +52,7 @@ const VideoTransition: React.FC = () => {
   const [progress, setProgress] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // Upscaling: proceso aparte sobre el video 1080p ya guardado.
-  const [upscaledUrl, setUpscaledUrl] = useState<string | null>(null);
-  const [isUpscaling, setIsUpscaling] = useState(false);
-  const [upscaleProgress, setUpscaleProgress] = useState('');
-  const [upscaleError, setUpscaleError] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const startFileInputRef = useRef<HTMLInputElement>(null);
   const endFileInputRef = useRef<HTMLInputElement>(null);
@@ -89,7 +86,7 @@ const VideoTransition: React.FC = () => {
         const url = URL.createObjectURL(resized);
         if (which === 'start') { setStartFrame(resized); setStartFramePreview(url); }
         else { setEndFrame(resized); setEndFramePreview(url); }
-        setSceneDescription(''); setVideoUrl(null); setVideoRenderId(null); setUpscaledUrl(null); setError(null);
+        setSceneDescription(''); setVideoUrl(null); setVideoRenderId(null); setError(null);
       } catch (err: any) {
         setError(`Error al optimizar: ${err.message}`);
       } finally { setIsLoading(false); setProgress(''); }
@@ -114,9 +111,7 @@ const VideoTransition: React.FC = () => {
   // ── Generate ──────────────────────────────────────────────────────────────
   const handleGenerate = useCallback(async () => {
     if (!startFrame || !endFrame) return;
-    setIsLoading(true); setVideoUrl(null); setVideoRenderId(null);
-    setUpscaledUrl(null); setUpscaleError(null); setUpscaleProgress('');
-    setError(null);
+    setIsLoading(true); setVideoUrl(null); setVideoRenderId(null); setError(null);
     setProgress('Enviando frames al modelo...');
     try {
       const { operationName } = await startVideoTransition(startFrame, endFrame, cameraMovement, sceneDescription);
@@ -135,21 +130,17 @@ const VideoTransition: React.FC = () => {
     } finally { setIsLoading(false); }
   }, [startFrame, endFrame, cameraMovement, sceneDescription]);
 
-  // ── Upscale (proceso aparte) ──────────────────────────────────────────────
-  const handleUpscale = useCallback(async () => {
-    if (!videoRenderId) return;
-    setIsUpscaling(true); setUpscaleError(null); setUpscaledUrl(null);
+  // ── Descarga ──────────────────────────────────────────────────────────────
+  // Pasa por downloadFromUrl y no por un <a download>: la URL firmada de
+  // Supabase es de otro origen y el navegador navegaría a ella, perdiendo el
+  // estado del wizard.
+  const handleDownload = useCallback(async () => {
+    if (!videoUrl) return;
+    setIsDownloading(true);
     try {
-      const result = await upscaleVideoToEnd(videoRenderId, setUpscaleProgress);
-      if (result.error) {
-        setUpscaleError(result.error);
-        setUpscaleProgress('');
-      } else {
-        setUpscaledUrl(result.url);
-        setUpscaleProgress('Upscale a 4K completado.');
-      }
-    } finally { setIsUpscaling(false); }
-  }, [videoRenderId]);
+      await downloadFromUrl(videoUrl, 'video_transition_1080p.mp4');
+    } finally { setIsDownloading(false); }
+  }, [videoUrl]);
 
   const handleStartNew = useCallback(() => {
     setStartFrame(null); setStartFramePreview(null);
@@ -158,7 +149,6 @@ const VideoTransition: React.FC = () => {
     if (endFileInputRef.current) endFileInputRef.current.value = '';
     setSceneDescription(''); setCameraMovement('dolly_in');
     setVideoUrl(null); setVideoRenderId(null); setError(null); setProgress(''); setCurrentStep(1);
-    setUpscaledUrl(null); setUpscaleError(null); setUpscaleProgress(''); setIsUpscaling(false);
   }, []);
 
   // ── Step content ──────────────────────────────────────────────────────────
@@ -237,17 +227,12 @@ const VideoTransition: React.FC = () => {
               <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Movimiento de Cámara</h2>
               <p className="text-stone-500 dark:text-stone-400 text-sm">Elige cómo se mueve la cámara del Start Frame al End Frame.</p>
             </div>
-            <div className="grid grid-cols-1 gap-2">
-              {CAMERA_MOVEMENT_OPTIONS.map((opt) => (
-                <button key={opt.value} onClick={() => setCameraMovement(opt.value)}
-                  className={`text-left py-3 px-4 rounded-lg border text-sm transition ${
-                    cameraMovement === opt.value
-                      ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 border-stone-800 dark:border-stone-200 font-semibold'
-                      : 'bg-white dark:bg-stone-950 border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:border-stone-400 dark:hover:border-stone-600'
-                  }`}>
-                  {opt.label}
-                </button>
-              ))}
+            <div>
+              <label htmlFor="camera-movement" className="block text-xs font-semibold text-stone-600 dark:text-stone-400 uppercase tracking-wider mb-1.5">Movimiento</label>
+              <select id="camera-movement" value={cameraMovement} onChange={(e) => setCameraMovement(e.target.value as CameraMovement)} disabled={isLoading}
+                className="w-full p-2.5 rounded-lg bg-white dark:bg-stone-950 border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 text-sm focus:ring-2 focus:ring-stone-400 outline-none transition disabled:opacity-40">
+                {CAMERA_MOVEMENT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
             </div>
           </div>
         );
@@ -265,7 +250,7 @@ const VideoTransition: React.FC = () => {
               <div className="flex justify-between"><span className="text-stone-500">Movimiento</span><span className="text-stone-700 dark:text-stone-300">{CAMERA_MOVEMENT_OPTIONS.find(o => o.value === cameraMovement)?.label}</span></div>
               <div className="flex justify-between"><span className="text-stone-500">Resolución</span><span className="text-stone-700 dark:text-stone-300">1080p (1920×1080)</span></div>
             </div>
-            <p className="text-xs text-stone-400">Costo aproximado por intento: $1.20–$3.20 USD (se cobra por segundo generado). Si necesitas 4K, hazlo después con el upscaler: es un proceso aparte y solo se cobra cuando lo pides.</p>
+            <p className="text-xs text-stone-400">Costo aproximado por intento: $1.20–$3.20 USD (se cobra por segundo generado).</p>
             <button onClick={handleGenerate} disabled={isLoading || !startFrame || !endFrame}
               className="w-full py-4 rounded-lg bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 text-base font-bold hover:bg-stone-700 dark:hover:bg-stone-300 transition disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 dark:disabled:bg-stone-700 dark:disabled:text-stone-500">
               {isLoading ? 'Generando video...' : 'Generar video'}
@@ -279,45 +264,10 @@ const VideoTransition: React.FC = () => {
             {videoUrl && (
               <div className="space-y-2 pt-2 border-t border-stone-200 dark:border-stone-700">
                 <p className="text-xs text-stone-400">*Los videos generados por IA pueden contener imperfecciones.</p>
-                <a href={videoUrl} download="video_transition_1080p.mp4"
-                  className="block text-center py-2.5 px-4 bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-800 dark:text-stone-200 text-sm font-semibold rounded-lg transition">
-                  Descargar 1080p
-                </a>
-
-                {/* ── Upscale: proceso aparte sobre el video ya generado ── */}
-                <div className="mt-4 p-4 rounded-lg border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-950 space-y-3">
-                  <div>
-                    <h3 className="text-sm font-semibold text-stone-800 dark:text-stone-200">Mejorar calidad a 4K</h3>
-                    <p className="text-xs text-stone-500 dark:text-stone-400 mt-0.5">
-                      Proceso independiente: toma el video 1080p ya generado y lo escala a 3840×2160 con Topaz, recuperando nitidez y detalle sin volver a generar la transición. Tarda unos minutos y tiene su propio costo (~$0.10 USD por segundo de video).
-                    </p>
-                  </div>
-
-                  {upscaledUrl ? (
-                    <a href={upscaledUrl} download="video_transition_4k.mp4"
-                      className="block text-center py-2.5 px-4 bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 hover:bg-stone-700 dark:hover:bg-stone-300 text-sm font-semibold rounded-lg transition">
-                      Descargar 4K
-                    </a>
-                  ) : (
-                    <button onClick={handleUpscale} disabled={isUpscaling || !videoRenderId}
-                      className="w-full py-2.5 px-4 rounded-lg bg-stone-700 hover:bg-stone-600 text-white text-sm font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed">
-                      {isUpscaling ? 'Escalando a 4K...' : 'Escalar a 4K'}
-                    </button>
-                  )}
-
-                  {!videoRenderId && !upscaledUrl && (
-                    <p className="text-xs text-stone-400">El video no quedó guardado en el historial, así que no se puede escalar. Genera la transición de nuevo.</p>
-                  )}
-                  {isUpscaling && upscaleProgress && (
-                    <div className="flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400"><LoadingSpinner /><span>{upscaleProgress}</span></div>
-                  )}
-                  {!isUpscaling && upscaledUrl && upscaleProgress && (
-                    <p className="text-xs text-stone-500 dark:text-stone-400">{upscaleProgress}</p>
-                  )}
-                  {!isUpscaling && upscaleError && (
-                    <p className="text-red-700 dark:text-red-300 text-sm bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg p-3">{upscaleError}</p>
-                  )}
-                </div>
+                <button onClick={handleDownload} disabled={isDownloading}
+                  className="w-full py-2.5 px-4 bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-800 dark:text-stone-200 text-sm font-semibold rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed">
+                  {isDownloading ? 'Descargando...' : 'Descargar video 1080p'}
+                </button>
 
                 <button onClick={handleStartNew} className="w-full py-2.5 bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200 text-sm font-semibold rounded-lg transition">Nueva transición</button>
               </div>
@@ -411,8 +361,8 @@ const VideoTransition: React.FC = () => {
         <div className="flex-1 min-h-0 flex items-center justify-center p-6">
           {videoUrl ? (
             <div className="w-full space-y-2">
-              <video src={upscaledUrl ?? videoUrl} controls autoPlay loop className="max-w-full max-h-full rounded-lg shadow-sm mx-auto" />
-              <p className="text-center text-xs text-stone-400">{upscaledUrl ? 'Versión 4K (escalada)' : '1080p'}</p>
+              <video src={videoUrl} controls autoPlay loop className="max-w-full max-h-full rounded-lg shadow-sm mx-auto" />
+              <p className="text-center text-xs text-stone-400">1080p</p>
             </div>
           ) : startFramePreview || endFramePreview ? (
             <div className="grid grid-cols-1 gap-3 w-full">
