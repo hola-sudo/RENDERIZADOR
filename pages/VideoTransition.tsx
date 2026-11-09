@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { detectSceneElements, startVideoTransition, pollVideoUntilDone } from '../services/apiService';
+import { downloadFromUrl } from '../services/download';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { CAMERA_MOVEMENT_OPTIONS, type CameraMovement } from '../types';
 
@@ -44,12 +45,14 @@ const VideoTransition: React.FC = () => {
   const [isDetecting, setIsDetecting] = useState(false);
 
   const [cameraMovement, setCameraMovement] = useState<CameraMovement>('dolly_in');
-  const [upscale4k, setUpscale4k] = useState(false);
 
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoRenderId, setVideoRenderId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const startFileInputRef = useRef<HTMLInputElement>(null);
   const endFileInputRef = useRef<HTMLInputElement>(null);
@@ -83,7 +86,7 @@ const VideoTransition: React.FC = () => {
         const url = URL.createObjectURL(resized);
         if (which === 'start') { setStartFrame(resized); setStartFramePreview(url); }
         else { setEndFrame(resized); setEndFramePreview(url); }
-        setSceneDescription(''); setVideoUrl(null); setError(null);
+        setSceneDescription(''); setVideoUrl(null); setVideoRenderId(null); setError(null);
       } catch (err: any) {
         setError(`Error al optimizar: ${err.message}`);
       } finally { setIsLoading(false); setProgress(''); }
@@ -108,34 +111,44 @@ const VideoTransition: React.FC = () => {
   // ── Generate ──────────────────────────────────────────────────────────────
   const handleGenerate = useCallback(async () => {
     if (!startFrame || !endFrame) return;
-    setIsLoading(true); setVideoUrl(null); setError(null);
-    setProgress('Enviando frames a Veo...');
+    setIsLoading(true); setVideoUrl(null); setVideoRenderId(null); setError(null);
+    setProgress('Enviando frames al modelo...');
     try {
-      const { operationName } = await startVideoTransition(
-        startFrame, endFrame, cameraMovement, sceneDescription,
-        upscale4k ? '4k' : '1080p',
-      );
+      const { operationName } = await startVideoTransition(startFrame, endFrame, cameraMovement, sceneDescription);
       const result = await pollVideoUntilDone(operationName, cameraMovement, sceneDescription, setProgress);
       if (result.error) {
         setError(result.error);
         setProgress('');
       } else {
         setVideoUrl(result.url);
+        setVideoRenderId(result.videoRenderId);
         setProgress('Video completado.');
       }
     } catch (err: any) {
       setError(`Error al generar: ${err.message}`);
       setProgress('');
     } finally { setIsLoading(false); }
-  }, [startFrame, endFrame, cameraMovement, sceneDescription, upscale4k]);
+  }, [startFrame, endFrame, cameraMovement, sceneDescription]);
+
+  // ── Descarga ──────────────────────────────────────────────────────────────
+  // Pasa por downloadFromUrl y no por un <a download>: la URL firmada de
+  // Supabase es de otro origen y el navegador navegaría a ella, perdiendo el
+  // estado del wizard.
+  const handleDownload = useCallback(async () => {
+    if (!videoUrl) return;
+    setIsDownloading(true);
+    try {
+      await downloadFromUrl(videoUrl, 'video_transition_1080p.mp4');
+    } finally { setIsDownloading(false); }
+  }, [videoUrl]);
 
   const handleStartNew = useCallback(() => {
     setStartFrame(null); setStartFramePreview(null);
     setEndFrame(null); setEndFramePreview(null);
     if (startFileInputRef.current) startFileInputRef.current.value = '';
     if (endFileInputRef.current) endFileInputRef.current.value = '';
-    setSceneDescription(''); setCameraMovement('dolly_in'); setUpscale4k(false);
-    setVideoUrl(null); setError(null); setProgress(''); setCurrentStep(1);
+    setSceneDescription(''); setCameraMovement('dolly_in');
+    setVideoUrl(null); setVideoRenderId(null); setError(null); setProgress(''); setCurrentStep(1);
   }, []);
 
   // ── Step content ──────────────────────────────────────────────────────────
@@ -174,7 +187,7 @@ const VideoTransition: React.FC = () => {
           <div className="space-y-5">
             <div>
               <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Sube el Start Frame y el End Frame</h2>
-              <p className="text-stone-500 dark:text-stone-400 text-sm">Dos renders fotorrealistas de la misma escena. Veo generará el video que los conecta.</p>
+              <p className="text-stone-500 dark:text-stone-400 text-sm">Dos renders fotorrealistas de la misma escena. El modelo generará el video que los conecta.</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               {renderFrameSlot('start')}
@@ -214,17 +227,12 @@ const VideoTransition: React.FC = () => {
               <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Movimiento de Cámara</h2>
               <p className="text-stone-500 dark:text-stone-400 text-sm">Elige cómo se mueve la cámara del Start Frame al End Frame.</p>
             </div>
-            <div className="grid grid-cols-1 gap-2">
-              {CAMERA_MOVEMENT_OPTIONS.map((opt) => (
-                <button key={opt.value} onClick={() => setCameraMovement(opt.value)}
-                  className={`text-left py-3 px-4 rounded-lg border text-sm transition ${
-                    cameraMovement === opt.value
-                      ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 border-stone-800 dark:border-stone-200 font-semibold'
-                      : 'bg-white dark:bg-stone-950 border-stone-300 dark:border-stone-700 text-stone-700 dark:text-stone-300 hover:border-stone-400 dark:hover:border-stone-600'
-                  }`}>
-                  {opt.label}
-                </button>
-              ))}
+            <div>
+              <label htmlFor="camera-movement" className="block text-xs font-semibold text-stone-600 dark:text-stone-400 uppercase tracking-wider mb-1.5">Movimiento</label>
+              <select id="camera-movement" value={cameraMovement} onChange={(e) => setCameraMovement(e.target.value as CameraMovement)} disabled={isLoading}
+                className="w-full p-2.5 rounded-lg bg-white dark:bg-stone-950 border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 text-sm focus:ring-2 focus:ring-stone-400 outline-none transition disabled:opacity-40">
+                {CAMERA_MOVEMENT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
             </div>
           </div>
         );
@@ -234,27 +242,15 @@ const VideoTransition: React.FC = () => {
           <div className="space-y-5">
             <div>
               <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Generar Video de Transición</h2>
-              <p className="text-stone-500 dark:text-stone-400 text-sm">Veo 3.1 genera 8s de video en {upscale4k ? '4K' : '1080p'}. Puede tardar hasta 6 minutos.</p>
+              <p className="text-stone-500 dark:text-stone-400 text-sm">Gemini Omni Flash genera 8s de video en 1080p. Puede tardar hasta 6 minutos.</p>
             </div>
             <div className="bg-stone-100 dark:bg-stone-800 rounded-lg p-4 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-stone-500">Start Frame</span><span className="text-stone-700 dark:text-stone-300 truncate ml-4 max-w-[60%] text-right">{startFrame?.name ?? '—'}</span></div>
               <div className="flex justify-between"><span className="text-stone-500">End Frame</span><span className="text-stone-700 dark:text-stone-300 truncate ml-4 max-w-[60%] text-right">{endFrame?.name ?? '—'}</span></div>
               <div className="flex justify-between"><span className="text-stone-500">Movimiento</span><span className="text-stone-700 dark:text-stone-300">{CAMERA_MOVEMENT_OPTIONS.find(o => o.value === cameraMovement)?.label}</span></div>
-              <div className="flex justify-between"><span className="text-stone-500">Resolución</span><span className="text-stone-700 dark:text-stone-300">{upscale4k ? '4K' : '1080p'}</span></div>
+              <div className="flex justify-between"><span className="text-stone-500">Resolución</span><span className="text-stone-700 dark:text-stone-300">1080p (1920×1080)</span></div>
             </div>
-            <label className={`flex items-start gap-3 p-4 rounded-lg border transition ${isLoading ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'} ${
-              upscale4k
-                ? 'bg-stone-800/5 dark:bg-stone-200/5 border-stone-800 dark:border-stone-200'
-                : 'bg-white dark:bg-stone-950 border-stone-300 dark:border-stone-700 hover:border-stone-400 dark:hover:border-stone-600'
-            }`}>
-              <input type="checkbox" checked={upscale4k} onChange={(e) => setUpscale4k(e.target.checked)} disabled={isLoading}
-                className="mt-0.5 w-4 h-4 accent-stone-800 dark:accent-stone-200 shrink-0" />
-              <span className="text-sm">
-                <span className="block font-semibold text-stone-800 dark:text-stone-200">Resolución 4K</span>
-                <span className="block text-stone-500 dark:text-stone-400 mt-0.5">Veo genera el video directamente en 4K (3840×2160), con mejores texturas y nitidez. Consume créditos adicionales y puede tardar más.</span>
-              </span>
-            </label>
-            <p className="text-xs text-stone-400">Costo aproximado por intento: $1.20–$3.20 USD (Veo cobra por segundo generado){upscale4k ? '; en 4K el costo por segundo es mayor' : ''}.</p>
+            <p className="text-xs text-stone-400">Costo aproximado por intento: $1.20–$3.20 USD (se cobra por segundo generado).</p>
             <button onClick={handleGenerate} disabled={isLoading || !startFrame || !endFrame}
               className="w-full py-4 rounded-lg bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 text-base font-bold hover:bg-stone-700 dark:hover:bg-stone-300 transition disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 dark:disabled:bg-stone-700 dark:disabled:text-stone-500">
               {isLoading ? 'Generando video...' : 'Generar video'}
@@ -268,10 +264,11 @@ const VideoTransition: React.FC = () => {
             {videoUrl && (
               <div className="space-y-2 pt-2 border-t border-stone-200 dark:border-stone-700">
                 <p className="text-xs text-stone-400">*Los videos generados por IA pueden contener imperfecciones.</p>
-                <a href={videoUrl} download="video_transition.mp4"
-                  className="block text-center py-2.5 px-4 bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-800 dark:text-stone-200 text-sm font-semibold rounded-lg transition">
-                  Descargar
-                </a>
+                <button onClick={handleDownload} disabled={isDownloading}
+                  className="w-full py-2.5 px-4 bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-800 dark:text-stone-200 text-sm font-semibold rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed">
+                  {isDownloading ? 'Descargando...' : 'Descargar video 1080p'}
+                </button>
+
                 <button onClick={handleStartNew} className="w-full py-2.5 bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200 text-sm font-semibold rounded-lg transition">Nueva transición</button>
               </div>
             )}
@@ -363,7 +360,10 @@ const VideoTransition: React.FC = () => {
       <div className="w-[40%] h-full flex flex-col border-l border-stone-200 dark:border-stone-800 bg-stone-100 dark:bg-stone-950">
         <div className="flex-1 min-h-0 flex items-center justify-center p-6">
           {videoUrl ? (
-            <video src={videoUrl} controls autoPlay loop className="max-w-full max-h-full rounded-lg shadow-sm" />
+            <div className="w-full space-y-2">
+              <video src={videoUrl} controls autoPlay loop className="max-w-full max-h-full rounded-lg shadow-sm mx-auto" />
+              <p className="text-center text-xs text-stone-400">1080p</p>
+            </div>
           ) : startFramePreview || endFramePreview ? (
             <div className="grid grid-cols-1 gap-3 w-full">
               {startFramePreview && <img src={startFramePreview} alt="Start Frame" className="max-w-full max-h-full object-contain rounded-lg shadow-sm" />}
