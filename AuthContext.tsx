@@ -6,6 +6,7 @@ interface AuthContextValue {
   session: Session | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<{ needsConfirmation: boolean }>;
   signOut: () => Promise<void>;
 }
 
@@ -35,12 +36,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (error) throw error;
   };
 
+  // Alta de cuenta. Si el proyecto de Supabase pide confirmar el correo,
+  // no llega sesión de inmediato y hay que avisarle al usuario.
+  const signUp = async (email: string, password: string) => {
+    const { data, error } = await supabase.auth.signUp({ email, password });
+    if (error) throw error;
+    return { needsConfirmation: !data.session };
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ session, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ session, loading, signIn, signUp, signOut }}>
       {children}
     </AuthContext.Provider>
   );

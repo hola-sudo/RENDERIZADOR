@@ -1,18 +1,47 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Event Render AI</title>
+    <title>Studio AI — Renders de evento con inteligencia artificial</title>
+    <meta name="description" content="Studio AI convierte tus escenas de SketchUp en renders fotorrealistas y videos de presentación en minutos.">
     <script>
       if (localStorage.getItem('theme') === 'dark' ||
           (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
         document.documentElement.classList.add('dark');
       }
     </script>
+
+    <!-- Tipografías: sans geométrica para UI/títulos, serif editorial para títulos de tarjeta -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Newsreader:opsz,wght@6..72,300;6..72,400;6..72,500&display=swap" rel="stylesheet">
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script>tailwind.config = { darkMode: 'class' }</script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              // Paleta cálida neutra de la landing
+              shell: '#E4E0D8',   // fondo exterior (lo que se ve alrededor del contenedor redondeado)
+              bone:  '#F4F2EE',   // lienzo principal
+              sand:  { DEFAULT: '#E9E6E0', deep: '#DDD9D1' }, // tarjetas
+              ink:   { DEFAULT: '#1A1715', soft: '#4A453F', mute: '#8C867E' },
+              line:  '#D8D3CB',
+            },
+            fontFamily: {
+              sans:    ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+              display: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+              serif:   ['Newsreader', 'ui-serif', 'Georgia', 'serif'],
+            },
+            borderRadius: { '4xl': '2rem', '5xl': '2.5rem', '6xl': '3rem' },
+          }
+        }
+      }
+    </script>
 <script type="importmap">
 {
   "imports": {
