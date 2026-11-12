@@ -13,9 +13,10 @@ export enum LightingType {
 // Modelo de imagen para el render final. El backend traduce la clave al ID de Gemini.
 export type RenderModel = 'standard' | 'pro';
 
+// Solo Estándar: la opción Pro se retiró de la interfaz (el backend sigue
+// aceptando 'pro' si alguna vez se vuelve a ofrecer).
 export const RENDER_MODEL_OPTIONS: { value: RenderModel; label: string }[] = [
   { value: 'standard', label: 'Estándar — rápido (Nano Banana 2)' },
-  { value: 'pro', label: 'Pro — máxima fidelidad, más lento (Nano Banana Pro)' },
 ];
 
 // Resolución del render final.
@@ -38,12 +39,20 @@ export const CAMERA_MOVEMENT_OPTIONS: { value: CameraMovement; label: string }[]
   { value: 'pan_right', label: 'Pan Derecha — barrido horizontal' },
 ];
 
+// Estado del proceso aparte de upscaling (null = nunca se pidió).
+export type UpscaleStatus = 'processing' | 'done' | 'error';
+
 export interface VideoRenderItem {
   id: string;
   url: string | null;
   start_description: string | null;
   camera_movement: string | null;
   duration_seconds: number | null;
+  resolution: string | null;
+  upscaled_url: string | null;
+  upscale_resolution: string | null;
+  upscale_status: UpscaleStatus | null;
+  upscale_error: string | null;
   created_at: string;
 }
 

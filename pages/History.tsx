@@ -19,19 +19,6 @@ const History: React.FC = () => {
   const [videosLoading, setVideosLoading] = useState(true);
   const [videosError, setVideosError] = useState<string | null>(null);
 
-  useEffect(() => {
-    let active = true;
-    listRenders()
-      .then((data) => { if (active) setImages(data); })
-      .catch((err) => { if (active) setImagesError(err.message ?? 'No se pudo cargar el historial.'); })
-      .finally(() => { if (active) setImagesLoading(false); });
-    listVideoRenders()
-      .then((data) => { if (active) setVideos(data); })
-      .catch((err) => { if (active) setVideosError(err.message ?? 'No se pudo cargar el historial.'); })
-      .finally(() => { if (active) setVideosLoading(false); });
-    return () => { active = false; };
-  }, []);
-
   const loading = tab === 'images' ? imagesLoading : videosLoading;
   const error = tab === 'images' ? imagesError : videosError;
 
@@ -116,7 +103,7 @@ const History: React.FC = () => {
               <div className="p-3 space-y-1">
                 <p className="text-xs text-stone-400">{formatDate(item.created_at)}</p>
                 <p className="text-sm text-stone-700 dark:text-stone-300 capitalize">
-                  {item.camera_movement?.replace('_', ' ') ?? '—'} · {item.duration_seconds ?? '—'}s
+                  {item.camera_movement?.replace('_', ' ') ?? '—'} · {item.duration_seconds ?? '—'}s · {item.resolution ?? '1080p'}
                 </p>
                 {item.start_description && (
                   <p className="text-xs text-stone-500 dark:text-stone-400 line-clamp-2">{item.start_description}</p>
