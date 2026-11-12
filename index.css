@@ -1,0 +1,6 @@
+html { scroll-behavior: smooth; }
+
+/* Evita el salto bajo el nav flotante al navegar con anclas */
+[id^="seccion-"] { scroll-margin-top: 7rem; }
+
+::selection { background: #1A1715; color: #F4F2EE; }
