@@ -25,3 +25,6 @@ dist-ssr
 
 backend/.env
 .env.local
+
+# Originales pesados de la landing (solo locales)
+public/landing/originales/
