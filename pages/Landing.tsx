@@ -4,14 +4,14 @@ import { Link } from 'react-router-dom';
 const tools = [
   {
     to: '/render',
-    title: 'Event Render AI',
-    description: 'Transforma una escena de SketchUp en un render fotorrealista de evento. Configura iluminación, temperatura de color, exposición y referencias visuales.',
+    title: 'Renderizador',
+    description: 'Transforma una escena de tu modelaje 3D en un render fotorrealista de tu proyecto. Configura la iluminación, describe tu escena y crea el ambiente que prefieras: de día, de noche o al atardecer.',
     badge: 'Available',
   },
   {
     to: '/video-transition',
-    title: 'Video Transition',
-    description: 'Crea transiciones de video profesionales con inteligencia artificial. Proporciona un start frame y un end frame.',
+    title: 'Recorrido virtual',
+    description: 'Crea recorridos virtuales con transiciones de video proporcionando un start frame y un end frame.',
     badge: 'Available',
   },
 ];
@@ -22,11 +22,11 @@ const Landing: React.FC = () => {
       <p className="text-xs font-semibold tracking-[0.25em] uppercase text-stone-400 mb-6">
         AI Creative Suite
       </p>
-      <h1 className="text-5xl md:text-7xl font-bold text-stone-900 dark:text-stone-100 text-center mb-5 tracking-tight leading-none">
-        Studio AI
+      <h1 className="text-4xl md:text-6xl font-bold text-stone-900 dark:text-stone-100 text-center mb-5 tracking-tight leading-none break-words">
+        PHORMARENDER
       </h1>
       <p className="text-stone-500 dark:text-stone-400 text-base md:text-lg text-center max-w-lg mb-16 leading-relaxed">
-        Herramientas de inteligencia artificial para profesionales del diseño y los eventos.
+        Herramientas de renderización para profesionales de arquitectura y diseño de interiores con inteligencia artificial.
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5 w-full max-w-3xl">

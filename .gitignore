@@ -28,3 +28,6 @@ backend/.env
 
 # Originales pesados de la landing (solo locales)
 public/landing/originales/
+
+# Originales pesados de los renders (solo locales)
+public/RENDERS/

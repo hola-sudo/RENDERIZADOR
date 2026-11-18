@@ -41,7 +41,7 @@ const Hero: React.FC = () => (
       <dl className="mt-4 grid grid-cols-2 gap-px overflow-hidden rounded-4xl bg-line lg:grid-cols-4">
         {hero.stats.map((stat) => (
           <div key={stat.label} className="bg-bone px-6 py-7">
-            <dt className="font-display text-3xl font-bold tracking-tight text-ink sm:text-4xl">
+            <dt className="font-display text-xl font-bold leading-tight tracking-tight text-ink sm:text-2xl">
               {stat.value}
             </dt>
             <dd className="mt-2 text-[13px] leading-snug text-ink-mute">{stat.label}</dd>

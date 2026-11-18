@@ -1,27 +1,102 @@
-import React, { useCallback, useRef, useState } from 'react';
-import { ArrowButton, Container, Eyebrow, Media, PillButton, SectionTitle } from './primitives';
+import React, { useMemo, useState } from 'react';
+import { ArrowButton, Container, Eyebrow, PillButton, SectionTitle } from './primitives';
 import { showcase } from './content';
 
+type Item = {
+  title: string;
+  render: string;
+  model: string;
+  video?: string;
+};
+
+/*
+ * Collage de casos. Cada tarjeta muestra el render; al pasar el cursor
+ * (o tocar, en móvil) se revela el modelo 3D del que salió. Las tarjetas
+ * con `video` añaden un botón de play que reproduce el recorrido virtual
+ * en el mismo recuadro.
+ */
+const Tile: React.FC<{ item: Item; tall?: boolean }> = ({ item, tall = false }) => {
+  const [revealed, setRevealed] = useState(false);
+  const [playing, setPlaying] = useState(false);
+
+  const height = tall
+    ? 'h-[260px] sm:h-[360px] lg:h-[460px]'
+    : 'h-[220px] sm:h-[300px] lg:h-[340px]';
+
+  return (
+    <figure className={`group relative overflow-hidden rounded-4xl bg-sand-deep ${height}`}>
+      {playing && item.video ? (
+        <video
+          src={item.video}
+          className="h-full w-full object-cover"
+          controls
+          autoPlay
+          playsInline
+          onEnded={() => setPlaying(false)}
+        />
+      ) : (
+        <>
+          <button
+            type="button"
+            onPointerEnter={(e) => e.pointerType !== 'touch' && setRevealed(true)}
+            onPointerLeave={(e) => e.pointerType !== 'touch' && setRevealed(false)}
+            onClick={() => setRevealed((p) => !p)}
+            aria-label={`${item.title} — ver el modelo 3D original`}
+            aria-pressed={revealed}
+            className="block h-full w-full cursor-pointer"
+          >
+            <img
+              src={item.render}
+              alt={`${item.title} — render generado`}
+              loading="lazy"
+              className="h-full w-full object-cover"
+            />
+            <img
+              src={item.model}
+              alt={`${item.title} — modelo 3D`}
+              loading="lazy"
+              aria-hidden={!revealed}
+              className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${
+                revealed ? 'opacity-100' : 'opacity-0'
+              }`}
+            />
+          </button>
+
+          {/* Etiqueta de lo que se está viendo */}
+          <span className="pointer-events-none absolute left-4 top-4 rounded-full bg-white/90 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-ink backdrop-blur">
+            {revealed ? 'Modelo 3D' : 'Render'}
+          </span>
+
+          {item.video && (
+            <button
+              type="button"
+              onClick={() => setPlaying(true)}
+              aria-label={`Reproducir el recorrido virtual de ${item.title}`}
+              className="absolute bottom-4 right-4 flex items-center gap-2 rounded-full bg-ink/85 px-4 py-2.5 text-[12px] font-medium text-bone backdrop-blur transition duration-200 hover:bg-ink"
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              Ver recorrido
+            </button>
+          )}
+
+          <figcaption className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/70 to-transparent p-4 pr-32 text-[13px] font-medium text-bone opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+            {item.title}
+          </figcaption>
+        </>
+      )}
+    </figure>
+  );
+};
+
 const Showcase: React.FC = () => {
-  const [index, setIndex] = useState(0);
-  const [split, setSplit] = useState(55);
-  const frameRef = useRef<HTMLDivElement>(null);
-  const dragging = useRef(false);
+  const [categoryId, setCategoryId] = useState(showcase.categories[0].id);
 
-  const item = showcase.items[index];
-  const total = showcase.items.length;
-
-  const updateFromPointer = useCallback((clientX: number) => {
-    const rect = frameRef.current?.getBoundingClientRect();
-    if (!rect) return;
-    const pct = ((clientX - rect.left) / rect.width) * 100;
-    setSplit(Math.min(98, Math.max(2, pct)));
-  }, []);
-
-  const go = (delta: number) => {
-    setIndex((prev) => (prev + delta + total) % total);
-    setSplit(55);
-  };
+  const items = useMemo<Item[]>(
+    () => showcase.categories.find((c) => c.id === categoryId)?.items ?? [],
+    [categoryId],
+  );
 
   return (
     <section id="seccion-galeria" className="pt-24 sm:pt-32">
@@ -30,106 +105,46 @@ const Showcase: React.FC = () => {
 
         <div className="mt-7 flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
           <SectionTitle top={showcase.titleTop} bottom={showcase.titleBottom} />
-          <p className="max-w-sm text-[15px] leading-relaxed text-ink-soft lg:pb-3">
+          <p className="max-w-md text-[15px] leading-relaxed text-ink-soft lg:pb-3">
             {showcase.description}
           </p>
         </div>
 
-        {/* Comparador antes / después */}
-        <div
-          ref={frameRef}
-          onPointerDown={(e) => {
-            dragging.current = true;
-            e.currentTarget.setPointerCapture(e.pointerId);
-            updateFromPointer(e.clientX);
-          }}
-          onPointerMove={(e) => dragging.current && updateFromPointer(e.clientX)}
-          onPointerUp={() => (dragging.current = false)}
-          onPointerCancel={() => (dragging.current = false)}
-          className="relative mt-10 touch-none select-none overflow-hidden rounded-5xl bg-sand-deep"
-        >
-          <Media
-            src={item.after}
-            alt={`${item.title} — render generado`}
-            label="Render generado"
-            className="h-[300px] w-full sm:h-[460px] lg:h-[580px]"
-          />
-
-          {/* Capa "antes", recortada hasta la posición del control */}
-          <div
-            className="absolute inset-0"
-            style={{ clipPath: `inset(0 ${100 - split}% 0 0)` }}
-          >
-            <Media
-              src={item.before}
-              alt={`${item.title} — modelo 3D`}
-              label="Modelo 3D"
-              className="h-full w-full"
-            />
-          </div>
-
-          {/* Control deslizante */}
-          <div
-            className="absolute inset-y-0 w-px bg-white/90"
-            style={{ left: `${split}%` }}
-            aria-hidden="true"
-          >
-            <span className="absolute top-1/2 flex h-12 w-12 -translate-x-1/2 -translate-y-1/2 cursor-ew-resize items-center justify-center rounded-full bg-white text-ink shadow-[0_6px_20px_rgba(26,23,21,0.2)]">
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10 7l-4 5 4 5M14 7l4 5-4 5" />
-              </svg>
-            </span>
-          </div>
-
-          <input
-            type="range"
-            min={2}
-            max={98}
-            value={Math.round(split)}
-            onChange={(e) => setSplit(Number(e.target.value))}
-            aria-label="Comparar modelo 3D con el render"
-            className="sr-only"
-          />
+        {/* Filtros del collage */}
+        <div className="mt-8 flex flex-wrap gap-2">
+          {showcase.categories.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setCategoryId(c.id)}
+              aria-pressed={c.id === categoryId}
+              className={`rounded-full px-5 py-2.5 text-sm font-medium transition duration-200 ${
+                c.id === categoryId
+                  ? 'bg-ink text-bone'
+                  : 'bg-sand text-ink-soft hover:bg-sand-deep hover:text-ink'
+              }`}
+            >
+              {c.label}
+            </button>
+          ))}
         </div>
 
-        {/* Ficha del caso */}
-        <div className="mt-4 rounded-5xl bg-sand p-7 sm:p-10">
-          <div className="grid gap-8 lg:grid-cols-[1fr_1.15fr]">
-            <div>
-              <p className="text-[13px] text-ink-mute">
-                <span className="text-ink">{String(index + 1).padStart(2, '0')}</span> / {String(total).padStart(2, '0')}
-              </p>
-              <h3 className="mt-3 font-serif text-3xl font-normal tracking-tight text-ink sm:text-[2.4rem]">
-                {item.title}
-              </h3>
-              <p className="mt-3 text-[13px] text-ink-mute">
-                {item.kind} <span className="mx-1">•</span> {item.place}
-              </p>
+        {/* Collage: la primera pieza ocupa el ancho completo */}
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          {items.map((item, i) => (
+            <div key={item.render} className={i === 0 ? 'sm:col-span-2' : ''}>
+              <Tile item={item} tall={i === 0} />
             </div>
+          ))}
+        </div>
 
-            <dl>
-              <div className="flex flex-col gap-1 border-b border-line py-4 sm:flex-row sm:gap-8">
-                <dt className="w-28 shrink-0 text-[14px] font-semibold text-ink">Objetivo</dt>
-                <dd className="text-[14px] leading-relaxed text-ink-soft">{item.goal}</dd>
-              </div>
-              <div className="flex flex-col gap-1 py-4 sm:flex-row sm:gap-8">
-                <dt className="w-28 shrink-0 text-[14px] font-semibold text-ink">Solución</dt>
-                <dd className="text-[14px] leading-relaxed text-ink-soft">{item.solution}</dd>
-              </div>
-            </dl>
-          </div>
-
-          <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-line pt-7">
-            <div className="flex items-center gap-3">
-              <ArrowButton variant="outline" direction="left" label="Caso anterior" onClick={() => go(-1)} />
-              <span className="text-sm text-ink-mute">Anterior</span>
-              <span className="ml-4 text-sm font-semibold text-ink">Siguiente</span>
-              <ArrowButton variant="outline" label="Caso siguiente" onClick={() => go(1)} />
-            </div>
-            <div className="flex items-center gap-2">
-              <PillButton to="/login">{showcase.cta}</PillButton>
-              <ArrowButton to="/login" label={showcase.cta} />
-            </div>
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
+          <p className="text-[13px] text-ink-mute">
+            Pasa el cursor sobre cualquier imagen para ver el modelo 3D de origen.
+          </p>
+          <div className="flex items-center gap-2">
+            <PillButton to="/login">{showcase.cta}</PillButton>
+            <ArrowButton to="/login" label={showcase.cta} />
           </div>
         </div>
       </Container>

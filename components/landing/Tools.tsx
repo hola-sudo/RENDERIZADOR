@@ -4,7 +4,14 @@ import { tools } from './content';
 
 const Tools: React.FC = () => {
   const [active, setActive] = useState(0);
+  const [playing, setPlaying] = useState(false);
   const item = tools.items[active];
+  const video = 'video' in item ? (item.video as string) : undefined;
+
+  const select = (i: number) => {
+    setActive(i);
+    setPlaying(false);
+  };
 
   return (
     <section id="seccion-herramientas" className="pt-24 sm:pt-32">
@@ -27,18 +34,43 @@ const Tools: React.FC = () => {
         <div className="mt-10 grid gap-4 lg:grid-cols-2">
           {/* Imagen de la herramienta activa + miniaturas */}
           <div className="relative overflow-hidden rounded-5xl bg-sand">
-            <Media
-              src={item.image}
-              alt={item.title}
-              label={item.title}
-              className="h-[320px] w-full sm:h-[440px] lg:h-[560px]"
-            />
-            <div className="absolute inset-x-0 bottom-0 flex justify-center gap-2 p-4">
+            {playing && video ? (
+              <video
+                src={video}
+                className="h-[320px] w-full object-cover sm:h-[440px] lg:h-[560px]"
+                controls
+                autoPlay
+                playsInline
+                onEnded={() => setPlaying(false)}
+              />
+            ) : (
+              <>
+                <Media
+                  src={item.image}
+                  alt={item.title}
+                  label={item.title}
+                  className="h-[320px] w-full sm:h-[440px] lg:h-[560px]"
+                />
+                {video && (
+                  <button
+                    type="button"
+                    onClick={() => setPlaying(true)}
+                    aria-label={`Reproducir el recorrido virtual de ${item.title}`}
+                    className="absolute left-1/2 top-1/2 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-ink backdrop-blur transition duration-200 hover:bg-white"
+                  >
+                    <svg className="ml-1 h-6 w-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  </button>
+                )}
+              </>
+            )}
+            <div className={`absolute inset-x-0 bottom-0 flex justify-center gap-2 p-4 ${playing ? 'hidden' : ''}`}>
               {tools.items.map((t, i) => (
                 <button
                   key={t.tab}
                   type="button"
-                  onClick={() => setActive(i)}
+                  onClick={() => select(i)}
                   aria-label={t.tab}
                   aria-current={i === active}
                   className={`h-14 w-16 overflow-hidden rounded-xl border-2 bg-sand-deep transition duration-200 sm:h-16 sm:w-20 ${
@@ -58,7 +90,7 @@ const Tools: React.FC = () => {
                 <button
                   key={t.tab}
                   type="button"
-                  onClick={() => setActive(i)}
+                  onClick={() => select(i)}
                   className={`px-1 text-sm transition duration-200 ${
                     i === active ? 'font-semibold text-ink' : 'text-ink-mute hover:text-ink-soft'
                   }`}
@@ -80,11 +112,13 @@ const Tools: React.FC = () => {
             <ul className="border-t border-line pt-6">
               {item.specs.map((spec) => (
                 <li
-                  key={spec}
+                  key={spec.term}
                   className="flex items-start gap-3 border-b border-line/70 py-3 text-[14px] text-ink-soft last:border-0"
                 >
                   <span className="mt-[7px] h-1.5 w-1.5 shrink-0 rounded-full bg-ink" />
-                  {spec}
+                  <span>
+                    <strong className="font-semibold text-ink">{spec.term}:</strong> {spec.detail}
+                  </span>
                 </li>
               ))}
             </ul>

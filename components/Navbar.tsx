@@ -5,8 +5,8 @@ import { useAuth } from '../AuthContext';
 
 const navLinks = [
   { to: '/app', label: 'Inicio' },
-  { to: '/render', label: 'Event Render' },
-  { to: '/video-transition', label: 'Transición IA' },
+  { to: '/render', label: 'Renderizador' },
+  { to: '/video-transition', label: 'Recorrido virtual' },
   { to: '/history', label: 'Historial' },
 ];
 
@@ -34,7 +34,7 @@ const Navbar: React.FC = () => {
     <nav className="w-full bg-white dark:bg-stone-900 border-b border-stone-200 dark:border-stone-800 px-6 py-4">
       <div className="max-w-6xl mx-auto flex items-center justify-between">
         <Link to="/app" className="text-stone-900 dark:text-stone-100 font-bold text-lg tracking-tight">
-          Studio<span className="text-stone-400 font-normal"> AI</span>
+          PHORMA<span className="text-stone-400 font-normal">RENDER</span>
         </Link>
 
         {/* Desktop links + toggle */}

@@ -187,7 +187,7 @@ const VideoTransition: React.FC = () => {
           <div className="space-y-5">
             <div>
               <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Sube el Start Frame y el End Frame</h2>
-              <p className="text-stone-500 dark:text-stone-400 text-sm">Dos renders fotorrealistas de la misma escena. El modelo generará el video que los conecta.</p>
+              <p className="text-stone-500 dark:text-stone-400 text-sm">Sube dos imágenes de render donde se aprecien los mismos objetos de tu escena. Nuestro modelo analizará la geometría y generará un recorrido virtual fluido que conecte ambas tomas.</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               {renderFrameSlot('start')}
@@ -203,8 +203,8 @@ const VideoTransition: React.FC = () => {
         return (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Confirmar Materiales</h2>
-              <p className="text-stone-500 dark:text-stone-400 text-sm">La IA analiza ambos frames y describe materiales/geometría. Esto se usa como candado anti-alucinación para el video. Corrígelo si hace falta.</p>
+              <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Descripción de materiales</h2>
+              <p className="text-stone-500 dark:text-stone-400 text-sm">PHORMARENDER analiza los frames y describe los materiales y composición de la escena. Corrígelo ahora.</p>
             </div>
             <button onClick={handleDetect} disabled={isDetecting || isLoading}
               className="w-full py-3 px-5 rounded-lg bg-stone-700 hover:bg-stone-600 text-white font-semibold text-sm transition disabled:opacity-40 disabled:cursor-not-allowed">
@@ -212,7 +212,7 @@ const VideoTransition: React.FC = () => {
             </button>
             {isDetecting && <div className="flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400"><LoadingSpinner /><span>{progress}</span></div>}
             <div>
-              <label htmlFor="scene-desc" className="block text-xs font-semibold text-stone-600 dark:text-stone-400 uppercase tracking-wider mb-2">Descripción validada</label>
+              <label htmlFor="scene-desc" className="block text-xs font-semibold text-stone-600 dark:text-stone-400 uppercase tracking-wider mb-2">Descripción de la escena</label>
               <textarea id="scene-desc" value={sceneDescription} onChange={(e) => setSceneDescription(e.target.value)} rows={12}
                 className="w-full p-3 rounded-lg bg-white dark:bg-stone-950 border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 text-sm focus:ring-2 focus:ring-stone-400 focus:border-transparent outline-none transition resize-y"
                 placeholder="La descripción aparecerá aquí, o escríbela manualmente..." />
@@ -241,8 +241,8 @@ const VideoTransition: React.FC = () => {
         return (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Generar Video de Transición</h2>
-              <p className="text-stone-500 dark:text-stone-400 text-sm">Gemini Omni Flash genera 8s de video en 1080p. Puede tardar hasta 6 minutos.</p>
+              <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Generar Recorrido Virtual</h2>
+              <p className="text-stone-500 dark:text-stone-400 text-sm">Genera tu escena de 8 segundos en 1080p.</p>
             </div>
             <div className="bg-stone-100 dark:bg-stone-800 rounded-lg p-4 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-stone-500">Start Frame</span><span className="text-stone-700 dark:text-stone-300 truncate ml-4 max-w-[60%] text-right">{startFrame?.name ?? '—'}</span></div>
@@ -250,10 +250,9 @@ const VideoTransition: React.FC = () => {
               <div className="flex justify-between"><span className="text-stone-500">Movimiento</span><span className="text-stone-700 dark:text-stone-300">{CAMERA_MOVEMENT_OPTIONS.find(o => o.value === cameraMovement)?.label}</span></div>
               <div className="flex justify-between"><span className="text-stone-500">Resolución</span><span className="text-stone-700 dark:text-stone-300">1080p (1920×1080)</span></div>
             </div>
-            <p className="text-xs text-stone-400">Costo aproximado por intento: $1.20–$3.20 USD (se cobra por segundo generado).</p>
             <button onClick={handleGenerate} disabled={isLoading || !startFrame || !endFrame}
               className="w-full py-4 rounded-lg bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 text-base font-bold hover:bg-stone-700 dark:hover:bg-stone-300 transition disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 dark:disabled:bg-stone-700 dark:disabled:text-stone-500">
-              {isLoading ? 'Generando video...' : 'Generar video'}
+              {isLoading ? 'Generando recorrido...' : 'Generar recorrido'}
             </button>
             {isLoading && progress && (
               <div className="flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400"><LoadingSpinner /><span>{progress}</span></div>

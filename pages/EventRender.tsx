@@ -205,8 +205,8 @@ const EventRender: React.FC = () => {
         return (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Carga tu Escena de SketchUp</h2>
-              <p className="text-stone-500 dark:text-stone-400 text-sm">Sube una captura de tu escena. Se optimizará automáticamente.</p>
+              <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Carga tu escena de tu modelo 3D</h2>
+              <p className="text-stone-500 dark:text-stone-400 text-sm">Sube una captura de tu escena. Nosotros optimizamos el tamaño automáticamente.</p>
             </div>
             <input ref={sketchupFileInputRef} type="file" accept="image/*" onChange={handleSketchupFileChange} className="hidden" disabled={isLoading} />
             <button onClick={() => sketchupFileInputRef.current?.click()} disabled={isLoading}
@@ -234,8 +234,8 @@ const EventRender: React.FC = () => {
         return (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Detectar Elementos de la Escena</h2>
-              <p className="text-stone-500 dark:text-stone-400 text-sm">La IA analizará materiales, colores, entorno y zonas vacías. Puedes editar el resultado.</p>
+              <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Detector de elementos de la escena</h2>
+              <p className="text-stone-500 dark:text-stone-400 text-sm">PHORMARENDER analiza materiales, colores y elementos que describen a la perfección tu escena. Puedes editar el resultado si algo no es fiel.</p>
             </div>
             <button onClick={handleDetectSceneElements} disabled={isDetectingScene || isLoading}
               className="w-full py-3 px-5 rounded-lg bg-stone-700 hover:bg-stone-600 text-white font-semibold text-sm transition disabled:opacity-40 disabled:cursor-not-allowed">
@@ -246,7 +246,7 @@ const EventRender: React.FC = () => {
               <label htmlFor="scene-desc" className="block text-xs font-semibold text-stone-600 dark:text-stone-400 uppercase tracking-wider mb-2">Descripción de la escena</label>
               <textarea id="scene-desc" value={sceneDescription} onChange={(e) => setSceneDescription(e.target.value)} rows={12}
                 className="w-full p-3 rounded-lg bg-white dark:bg-stone-950 border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 text-sm focus:ring-2 focus:ring-stone-400 focus:border-transparent outline-none transition resize-y"
-                placeholder="La descripción aparecerá aquí, o escríbela manualmente..." />
+                placeholder="Edita tu descripción ahora" />
             </div>
           </div>
         );
@@ -256,7 +256,7 @@ const EventRender: React.FC = () => {
           <div className="space-y-5">
             <div>
               <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Referencias Visuales <span className="text-stone-400 font-normal text-sm">(Opcional)</span></h2>
-              <p className="text-stone-500 dark:text-stone-400 text-sm">Sube hasta {MAX_REFERENCE_IMAGES} imágenes de elementos específicos para que la IA los replique.</p>
+              <p className="text-stone-500 dark:text-stone-400 text-sm">Sube hasta {MAX_REFERENCE_IMAGES} imágenes de elementos específicos en tu escena aislados de su fondo para que podamos detectarlos e integrarlos a tu render.</p>
             </div>
             <input ref={referenceFileInputRef} type="file" accept="image/*" multiple onChange={handleReferenceImagesChange} className="hidden" disabled={referenceImages.length >= MAX_REFERENCE_IMAGES || isLoading} />
             <button onClick={() => referenceFileInputRef.current?.click()} disabled={referenceImages.length >= MAX_REFERENCE_IMAGES || isLoading}
@@ -287,7 +287,7 @@ const EventRender: React.FC = () => {
           <div className="space-y-5">
             <div>
               <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Configurar Iluminación</h2>
-              <p className="text-stone-500 dark:text-stone-400 text-sm">Define el ambiente lumínico. Puedes guardar y cargar configuraciones.</p>
+              <p className="text-stone-500 dark:text-stone-400 text-sm">Define el horario específico que quieres aplicar a tu escena. Puedes guardar o cargar tus configuraciones de iluminación para usarlas en otros proyectos.</p>
             </div>
             <div className="flex gap-2">
               <input ref={lightingConfigFileInputRef} type="file" accept=".json" onChange={handleLoadLightingConfig} className="hidden" />
@@ -297,7 +297,7 @@ const EventRender: React.FC = () => {
             {([
               { id: 'lt', label: 'Tipo de iluminación', value: lightingType, set: (v: string) => setLightingType(v as LightingType), opts: [
                 { value: LightingType.Day, label: 'Día — brillante y natural' },
-                { value: LightingType.Sunset, label: 'Atardecer — cálida y dorada' },
+                { value: LightingType.Sunset, label: 'Tarde — atardecer / golden hour' },
                 { value: LightingType.Night, label: 'Noche — velas y ambiente tenue' },
               ]},
               { id: 'ct', label: 'Temperatura de color', value: colorTemperature, set: (v: string) => setColorTemperature(v as LightingConfig['colorTemperature']), opts: [
@@ -328,7 +328,7 @@ const EventRender: React.FC = () => {
               <textarea id="adv-light" value={advancedLightingInstructions} onChange={(e) => setAdvancedLightingInstructions(e.target.value)}
                 rows={3} disabled={isLoading}
                 className="w-full p-2.5 rounded-lg bg-white dark:bg-stone-950 border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 text-sm focus:ring-2 focus:ring-stone-400 outline-none transition resize-y disabled:opacity-40"
-                placeholder="Ej: spotlights blancos sobre cada mesa, tiras LED cálidas..." />
+                placeholder="Ej. Enciende la lámpara de piso y añade luces dicroicas en el techo." />
             </div>
           </div>
         );
@@ -337,8 +337,8 @@ const EventRender: React.FC = () => {
         return (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Generar Render Fotorrealista</h2>
-              <p className="text-stone-500 dark:text-stone-400 text-sm">Todo listo. Genera el render con la configuración actual.</p>
+              <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Generar render</h2>
+              <p className="text-stone-500 dark:text-stone-400 text-sm">Todo listo. Genera tu render ahora.</p>
             </div>
             <div>
               <label htmlFor="render-size" className="block text-xs font-semibold text-stone-600 dark:text-stone-400 uppercase tracking-wider mb-1.5">Resolución</label>
@@ -353,7 +353,7 @@ const EventRender: React.FC = () => {
             <div className="bg-stone-100 dark:bg-stone-800 rounded-lg p-4 space-y-2 text-sm">
               <div className="flex justify-between"><span className="text-stone-500">Escena</span><span className="text-stone-700 dark:text-stone-300 truncate ml-4 max-w-[60%] text-right">{uploadedSketchupScene?.name ?? '—'}</span></div>
               <div className="flex justify-between"><span className="text-stone-500">Iluminación</span><span className="text-stone-700 dark:text-stone-300 capitalize">{lightingType} · {colorTemperature}</span></div>
-              <div className="flex justify-between"><span className="text-stone-500">Modelo</span><span className="text-stone-700 dark:text-stone-300">Nano Banana 2 · {renderSize}</span></div>
+              <div className="flex justify-between"><span className="text-stone-500">Resolución</span><span className="text-stone-700 dark:text-stone-300">{renderSize}</span></div>
               <div className="flex justify-between"><span className="text-stone-500">Referencias</span><span className="text-stone-700 dark:text-stone-300">{referenceImages.length > 0 ? `${referenceImages.length} imagen${referenceImages.length > 1 ? 'es' : ''}` : 'Ninguna'}</span></div>
             </div>
             <button onClick={handleGenerateRender} disabled={isLoading || !uploadedSketchupScene || !sceneDescription.trim()}
@@ -472,7 +472,7 @@ const EventRender: React.FC = () => {
           {previewSrc ? (
             <img
               src={previewSrc}
-              alt={showRender ? 'Render generado' : 'Escena SketchUp'}
+              alt={showRender ? 'Render generado' : 'Escena de tu modelo 3D'}
               className="max-w-full max-h-full object-contain rounded-lg shadow-sm"
             />
           ) : (

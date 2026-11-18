@@ -5,10 +5,10 @@
 // ---------------------------------------------------------------------------
 
 export const brand = {
-  name: 'Studio',
-  nameAccent: 'AI',
-  monogram: 'SA',
-  tagline: 'Renders de evento con IA',
+  name: 'PHORMA',
+  nameAccent: 'RENDER',
+  monogram: 'PR',
+  tagline: 'Renders con IA para arquitectura',
   email: 'hola@studioai.mx',
 };
 
@@ -20,82 +20,79 @@ export const nav = [
 ];
 
 export const hero = {
-  eyebrow: 'Plataforma de render con IA',
-  titleTop: 'Del modelo de SketchUp',
-  titleBottom: 'al render final en minutos',
+  eyebrow: 'Renderizado fotorrealista en segundos',
+  titleTop: 'Transforma tu modelo 3D',
+  titleBottom: 'en renders y recorridos virtuales',
   description:
-    'Studio AI convierte tus escenas de evento en imágenes fotorrealistas y videos de presentación. Sin render farm, sin esperar toda la noche por una sola toma.',
+    'Sube tu boceto y toma el control de la escena. PHORMARENDER analiza tus materiales e iluminación para entregarte imágenes fijas en 4K y recorridos virtuales.',
   primaryCta: 'Crear mi cuenta',
   secondaryCta: 'Ver planes',
   image: '/landing/hero.jpg',
-  imageLabel: 'Render de evento',
+  imageLabel: 'Render de arquitectura',
   stats: [
-    { value: '4K', label: 'Resolución máxima de salida' },
-    { value: '≈ 60 s', label: 'Por render generado' },
-    { value: '3', label: 'Esquemas de iluminación base' },
-    { value: '100%', label: 'Historial guardado en la nube' },
+    { value: '2K y 4K', label: 'Resolución de alta calidad para un resultado fotorrealista.' },
+    {
+      value: 'Precisión y Control',
+      label: 'Descripción y detección específica de tu escena para un control de cada material.',
+    },
+    {
+      value: 'Control de Iluminación',
+      label: 'Manejo de ambiente adaptable con configuraciones de día, tarde y noche.',
+    },
+    {
+      value: 'Fijos y Recorridos',
+      label: 'Genera tanto imágenes estáticas como recorridos virtuales a partir de tus escenas.',
+    },
   ],
 };
 
 // Sección de pestañas (una pestaña por herramienta de la plataforma).
 export const tools = {
   eyebrow: 'Herramientas',
-  titleTop: 'Todo tu flujo de presentación',
+  titleTop: 'Renders y recorridos virtuales',
   titleBottom: 'en una sola plataforma',
   description:
-    'Cuatro módulos pensados para estudios de diseño de eventos: del boceto 3D a la imagen final y al video que mandas al cliente.',
+    'Pensado para arquitectos y diseñadores de interiores. Convierte tu modelo 3D en imágenes fotorrealistas y genera recorridos virtuales para tus proyectos.',
   cta: 'Probar la plataforma',
   items: [
     {
-      tab: 'Event Render',
-      title: 'Event Render',
+      tab: 'Render Fijo',
+      title: 'Renderizador',
       description:
-        'Sube la vista exportada de SketchUp y obtén un render fotorrealista del montaje. Controlas iluminación, temperatura de color, exposición y contraste, y puedes anexar referencias visuales para fijar el estilo.',
+        'Sube una vista exportada de tu modelo 3D y obtén un render fotorrealista. Tú tienes el control total: ajusta los valores de iluminación, define los materiales, dirige los elementos de la escena y anexa referencias visuales para lograr exactamente el resultado que buscas.',
       image: '/landing/tool-render.jpg',
       specs: [
-        'Entrada: captura o export de tu escena 3D',
-        'Iluminación de día, atardecer o noche',
-        'Referencias de estilo opcionales',
-        'Salida en 2K o 4K',
+        { term: 'Ingreso de escena', detail: 'Ingresa tu modelo 3D.' },
+        { term: 'Dirección de escena', detail: 'Define los materiales, elementos y añade referencias.' },
+        { term: 'Ambiente dinámico', detail: 'Cambia el tipo de iluminación a día, tarde o noche.' },
+        { term: 'Calidad flexible', detail: 'Genera tu modelo en 2K o 4K, como tú prefieras.' },
       ],
     },
     {
-      tab: 'Transición de video',
-      title: 'Transición de video',
+      tab: 'Recorrido Virtual',
+      title: 'Recorridos Virtuales',
       description:
-        'Define un start frame y un end frame y la plataforma genera la transición cinematográfica entre ambos, con el movimiento de cámara que elijas: dolly, zoom o paneo.',
+        'Añade un start frame y un end frame para que nuestra plataforma analice y genere la transición de movimiento entre ambas escenas. Aplica el movimiento de cámara que prefieras, ya sea dolly, zoom o paneo.',
       image: '/landing/tool-video.jpg',
+      video: '/landing/video/interior-1.mp4',
       specs: [
-        'Start frame y end frame propios',
-        'Dolly in/out, zoom in/out, paneo',
-        'Duración configurable',
-        'Descarga lista para presentación',
-      ],
-    },
-    {
-      tab: 'Upscale 4K',
-      title: 'Upscale 4K',
-      description:
-        'Lleva cualquier render o video del historial a máxima resolución cuando el cliente pide el archivo para impresión o para proyectar en pantalla grande.',
-      image: '/landing/tool-upscale.jpg',
-      specs: [
-        'Escalado de imagen y de video',
-        'Se ejecuta en segundo plano',
-        'No pierdes el archivo original',
-        'Disponible desde el historial',
+        { term: 'Renders clave', detail: 'Añades tus escenas.' },
+        { term: 'Configuración visual', detail: 'Defines los materiales.' },
+        { term: 'Movimiento de cámara', detail: 'Defines el tipo de movimiento de cámara que quieres hacer.' },
+        { term: 'Resultado final', detail: 'Obtienes un recorrido fluido entre escenas de 8 segundos.' },
       ],
     },
     {
       tab: 'Historial',
-      title: 'Historial del estudio',
+      title: 'Historial y Privacidad',
       description:
-        'Cada render y cada video queda guardado con su configuración. Recuperas una versión anterior, la duplicas con otra iluminación y comparas resultados sin volver a empezar.',
+        'Visualiza y descarga tus renders y recorridos hasta por 7 días sin necesidad de renderizar desde cero.',
       image: '/landing/tool-history.jpg',
       specs: [
-        'Organizado por fecha y proyecto',
-        'Guarda la configuración usada',
-        'Descarga en cualquier momento',
-        'Privado por cuenta',
+        { term: 'Organización eficiente', detail: 'Organizado por fecha.' },
+        { term: 'Replicabilidad', detail: 'Se guarda la configuración de iluminación.' },
+        { term: 'Disponibilidad', detail: 'Descargas en cualquier momento (dentro de los 7 días).' },
+        { term: 'Privacidad total', detail: 'Tus escenas son completamente privadas en tu perfil.' },
       ],
     },
   ],
@@ -103,69 +100,86 @@ export const tools = {
 
 export const process = {
   eyebrow: 'Proceso',
-  titleTop: 'Cómo se produce',
-  titleBottom: 'cada render',
+  titleTop: 'Cómo crear tus renders',
+  titleBottom: 'con PHORMARENDER',
   description:
-    'Un flujo corto y predecible: lo que antes tomaba una noche de render ahora cabe entre dos juntas.',
-  imageTitle: 'Del boceto al montaje final',
+    'La manera más precisa de describir tus modelos 3D. Obtenemos un resultado fotorrealista respetando tus materiales y la geometría de tu escena.',
+  imageTitle: 'Del modelo 3D al render final',
   image: '/landing/proceso.jpg',
   steps: [
     {
       title: 'Sube tu escena',
       description:
-        'Exporta la vista desde SketchUp y súbela. No necesitas limpiar el modelo ni aplicar materiales: la geometría es suficiente.',
+        'Exporta la vista de tu software 3D con los colores y texturas base. Nuestro sistema analiza y describe tu escena, reconociendo cada elemento geométrico y material.',
     },
     {
-      title: 'Define la iluminación',
+      title: 'Dirección de escena',
       description:
-        'Eliges día, atardecer o noche y ajustas temperatura de color, exposición y contraste. Puedes escribir instrucciones específicas del montaje.',
+        'Toma el control. Corrige materiales, añade elementos no detectados y sube imágenes de referencia aisladas para asegurar que la escena esté descrita como la imaginaste.',
     },
     {
-      title: 'Genera y compara',
+      title: 'Iluminación a medida',
       description:
-        'El render sale en alrededor de un minuto. Generas variantes con otra luz o encuadre y las comparas lado a lado antes de decidir.',
+        'Configura el ambiente. Elige entre iluminación de día, tarde o noche, y añade luces para darle la atmósfera correcta.',
     },
     {
-      title: 'Entrega en 4K',
+      title: 'Entrega fotorrealista',
       description:
-        'Escalas la versión aprobada a 4K y la descargas, o la conviertes en un video de transición para la presentación al cliente.',
+        'Obtén un render fotorrealista de alta calidad, listo para presentar a tus clientes.',
     },
   ],
 };
 
 export const showcase = {
   eyebrow: 'Galería',
-  titleTop: 'Antes y después',
-  titleBottom: 'de la misma escena',
-  description: 'Arrastra el control para comparar el modelo 3D con el render generado.',
+  titleTop: 'Diseñado para',
+  titleBottom: 'arquitectos e interioristas',
+  description:
+    'Explora cómo los profesionales transforman sus modelos 3D en imágenes fotorrealistas. Pasa el cursor sobre cualquier imagen para ver el antes (modelo 3D) y el después (render PHORMARENDER).',
   cta: 'Quiero probarlo',
-  items: [
+  // Cada categoría es un filtro del collage. `video` es opcional: cuando
+  // existe, la tarjeta muestra un botón de play con el recorrido virtual.
+  categories: [
     {
-      title: 'Montaje de boda en jardín',
-      kind: 'Evento social',
-      place: 'Escena exterior · atardecer',
-      goal: 'Mostrar al cliente el montaje con luz cálida de las 7 pm antes de rentar mobiliario.',
-      solution: 'Render a partir de la vista de SketchUp con iluminación de atardecer y referencia de paleta.',
-      before: '/landing/caso-1-antes.jpg',
-      after: '/landing/caso-1-despues.jpg',
+      id: 'residencial',
+      label: 'Residencial y Fachadas',
+      items: [
+        {
+          title: 'Fachada principal al atardecer',
+          render: '/landing/galeria/fachada-1-render.jpg',
+          model: '/landing/galeria/fachada-1-modelo.jpg',
+          video: '/landing/video/fachada-1.mp4',
+        },
+        {
+          title: 'Acceso peatonal y jardín',
+          render: '/landing/galeria/fachada-2-render.jpg',
+          model: '/landing/galeria/fachada-2-modelo.jpg',
+          video: '/landing/video/fachada-2.mp4',
+        },
+        {
+          title: 'Cochera y celosía perforada',
+          render: '/landing/galeria/fachada-3-render.jpg',
+          model: '/landing/galeria/fachada-3-modelo.jpg',
+          video: '/landing/video/fachada-3.mp4',
+        },
+      ],
     },
     {
-      title: 'Congreso corporativo',
-      kind: 'Evento corporativo',
-      place: 'Salón cerrado · luz neutra',
-      goal: 'Validar escenografía, pantallas y distribución de mesas en una sola imagen.',
-      solution: 'Render en 4K con exposición controlada para que la pantalla LED no se queme.',
-      before: '/landing/caso-2-antes.jpg',
-      after: '/landing/caso-2-despues.jpg',
-    },
-    {
-      title: 'Activación de marca',
-      kind: 'Activación',
-      place: 'Espacio abierto · noche',
-      goal: 'Presentar tres opciones de iluminación al cliente en la misma junta.',
-      solution: 'Tres variantes generadas de la misma escena cambiando solo el esquema de luz.',
-      before: '/landing/caso-3-antes.jpg',
-      after: '/landing/caso-3-despues.jpg',
+      id: 'interiores',
+      label: 'Diseño de Interiores',
+      items: [
+        {
+          title: 'Recámara principal con vista a la ciudad',
+          render: '/landing/galeria/interior-1-render.jpg',
+          model: '/landing/galeria/interior-1-modelo.jpg',
+          video: '/landing/video/interior-1.mp4',
+        },
+        {
+          title: 'Cabecera y paneles de madera',
+          render: '/landing/galeria/interior-2-render.jpg',
+          model: '/landing/galeria/interior-2-modelo.jpg',
+        },
+      ],
     },
   ],
 };
@@ -179,7 +193,7 @@ export const pricing = {
   titleTop: 'Planes para estudios',
   titleBottom: 'de cualquier tamaño',
   description:
-    'Todos los planes incluyen las cuatro herramientas. Lo que cambia es el volumen de renders y los usuarios de tu equipo.',
+    'Todos los planes incluyen las herramientas de la plataforma. Lo que cambia es el volumen de renders y los usuarios de tu equipo.',
   currency: 'MXN',
   annualDiscountLabel: 'Ahorra 20%',
   note: 'Precios en pesos mexicanos, IVA incluido. Puedes cambiar o cancelar tu plan cuando quieras.',
@@ -187,16 +201,16 @@ export const pricing = {
     {
       id: 'starter',
       name: 'Starter',
-      summary: 'Para freelancers que presentan uno o dos eventos por semana.',
+      summary: 'Para freelancers que presentan uno o dos proyectos por semana.',
       monthly: 499,
       annual: 399,
       featured: false,
       cta: 'Empezar',
       features: [
         '50 renders en 2K al mes',
-        '5 videos de transición',
+        '5 recorridos virtuales',
         '1 usuario',
-        'Historial de 30 días',
+        'Historial de 7 días',
         'Soporte por correo',
       ],
     },
@@ -210,17 +224,17 @@ export const pricing = {
       cta: 'Empezar',
       features: [
         '200 renders en 2K o 4K',
-        '20 videos de transición',
-        'Upscale 4K incluido',
+        '20 recorridos virtuales',
+        'Salida en 4K incluida',
         'Hasta 3 usuarios',
-        'Historial ilimitado',
+        'Historial de 7 días',
         'Soporte prioritario',
       ],
     },
     {
       id: 'pro',
       name: 'Estudio Pro',
-      summary: 'Para equipos que producen eventos en paralelo todo el mes.',
+      summary: 'Para equipos que producen proyectos en paralelo todo el mes.',
       monthly: 2999,
       annual: 2399,
       featured: false,
@@ -228,7 +242,7 @@ export const pricing = {
       href: 'mailto:hola@studioai.mx?subject=Plan%20Estudio%20Pro',
       features: [
         '600 renders en 2K o 4K',
-        'Videos de transición ilimitados',
+        'Recorridos virtuales ilimitados',
         'Hasta 10 usuarios',
         'Biblioteca de estilos del estudio',
         'Onboarding con tu equipo',
@@ -245,15 +259,15 @@ export const faq = {
   items: [
     {
       q: '¿Necesito saber usar un motor de render?',
-      a: 'No. Si sabes exportar una vista de SketchUp, ya sabes usar Studio AI. Los controles son de fotografía (luz, temperatura, exposición), no de materiales ni de iluminación 3D.',
+      a: 'No. Si sabes exportar una vista de tu modelo 3D, ya sabes usar PHORMARENDER. Los controles son de fotografía (luz, temperatura, exposición), no de materiales ni de iluminación 3D.',
     },
     {
       q: '¿Qué tan parecido queda al modelo original?',
-      a: 'La plataforma respeta la geometría y el encuadre de tu escena. Lo que agrega son materiales, luz y ambiente; la distribución del montaje se mantiene.',
+      a: 'La plataforma respeta la geometría y el encuadre de tu escena. Lo que agrega son materiales, luz y ambiente; la composición de tu proyecto se mantiene.',
     },
     {
       q: '¿Puedo usar los renders comercialmente?',
-      a: 'Sí. Las imágenes y videos que generas son tuyos y los puedes entregar a tus clientes sin restricción.',
+      a: 'Sí. Las imágenes y recorridos que generas son tuyos y los puedes entregar a tus clientes sin restricción.',
     },
     {
       q: '¿Qué pasa si se me acaban los renders del mes?',
@@ -267,16 +281,16 @@ export const faq = {
 };
 
 export const finalCta = {
-  titleTop: 'Presenta tu próximo evento',
-  titleBottom: 'con un render, no con un boceto',
-  description: 'Crea tu cuenta y genera tu primer render hoy mismo.',
+  titleTop: 'Presenta tu próximo proyecto',
+  titleBottom: 'con un render que destaque, fiel a tu diseño',
+  description: 'Crea tu cuenta y transforma tu primer modelo 3D en un render fotorrealista hoy mismo.',
   primary: 'Crear mi cuenta',
   secondary: 'Ya tengo cuenta',
 };
 
 export const footer = {
   description:
-    'Studio AI es la plataforma de render con inteligencia artificial para estudios de diseño y producción de eventos.',
+    'PHORMARENDER es la plataforma de render con inteligencia artificial para arquitectos y diseñadores de interiores.',
   columns: [
     {
       title: 'Plataforma',

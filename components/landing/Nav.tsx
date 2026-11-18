@@ -27,7 +27,7 @@ const Nav: React.FC = () => {
             {brand.monogram}
           </span>
           <span className="hidden text-[11px] leading-tight text-ink-mute sm:block">
-            {brand.name} {brand.nameAccent}
+            {brand.name}{brand.nameAccent}
             <br />
             {brand.tagline}
           </span>

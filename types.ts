@@ -23,8 +23,8 @@ export const RENDER_MODEL_OPTIONS: { value: RenderModel; label: string }[] = [
 export type RenderSize = '2K' | '4K';
 
 export const RENDER_SIZE_OPTIONS: { value: RenderSize; label: string }[] = [
-  { value: '2K', label: '2K — estándar' },
-  { value: '4K', label: '4K — máxima resolución, mayor costo' },
+  { value: '2K', label: '2K' },
+  { value: '4K', label: '4K — máxima resolución' },
 ];
 
 // Movimiento de cámara para la transición de video (Start Frame -> End Frame).
