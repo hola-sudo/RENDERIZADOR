@@ -1,6 +1,11 @@
 import React, { useState, useCallback, useRef } from 'react';
 import { detectSceneElements, generateSingleRender } from '../services/apiService';
 import LoadingSpinner from '../components/LoadingSpinner';
+import {
+  alertError, btnGhost, btnPrimary, btnSecondary, btnSoft, emptyBox, heading,
+  label as labelClass, note, select as selectClass, subheading, summaryBox,
+  textarea as textareaClass, toggleGroup, toggleOption,
+} from '../components/ui';
 import { LightingType, LightingConfig, RenderModel, RenderSize, RENDER_SIZE_OPTIONS } from '../types';
 
 const STEPS = [
@@ -205,27 +210,25 @@ const EventRender: React.FC = () => {
         return (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Carga tu escena de tu modelo 3D</h2>
-              <p className="text-stone-500 dark:text-stone-400 text-sm">Sube una captura de tu escena. Nosotros optimizamos el tamaño automáticamente.</p>
+              <h2 className={heading}>Carga tu escena de tu modelo 3D</h2>
+              <p className={`mt-2 ${subheading}`}>Sube una captura de tu escena. Nosotros optimizamos el tamaño automáticamente.</p>
             </div>
             <input ref={sketchupFileInputRef} type="file" accept="image/*" onChange={handleSketchupFileChange} className="hidden" disabled={isLoading} />
             <button onClick={() => sketchupFileInputRef.current?.click()} disabled={isLoading}
-              className="w-full py-3 px-5 rounded-lg bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-800 dark:text-stone-200 font-semibold text-sm transition disabled:opacity-40 disabled:cursor-not-allowed">
+              className={`${btnSecondary} w-full`}>
               {uploadedSketchupScene ? 'Cambiar archivo' : 'Seleccionar archivo'}
             </button>
             {isLoading && currentGenerationProgress.startsWith('Optimizando') && (
-              <div className="flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400"><LoadingSpinner /><span>{currentGenerationProgress}</span></div>
+              <div className="flex items-center gap-2 text-[14px] text-ink-soft"><LoadingSpinner /><span>{currentGenerationProgress}</span></div>
             )}
             {uploadedSketchupScene ? (
-              <div className="flex items-center gap-3 bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-lg px-4 py-3">
-                <div className="w-2 h-2 rounded-full bg-stone-400 shrink-0" />
-                <span className="text-sm text-stone-700 dark:text-stone-300 truncate">{uploadedSketchupScene.name}</span>
-                <span className="text-xs text-stone-400 ml-auto shrink-0">Listo</span>
+              <div className="flex items-center gap-3 rounded-3xl bg-white px-5 py-4">
+                <div className="h-1.5 w-1.5 shrink-0 rounded-full bg-ink" />
+                <span className="truncate text-[14px] text-ink">{uploadedSketchupScene.name}</span>
+                <span className="ml-auto shrink-0 text-[12px] uppercase tracking-[0.1em] text-ink-mute">Listo</span>
               </div>
             ) : (
-              <div className="border-2 border-dashed border-stone-300 dark:border-stone-700 rounded-lg p-8 text-center text-stone-400 dark:text-stone-600 text-sm">
-                Ningún archivo seleccionado
-              </div>
+              <div className={emptyBox}>Ningún archivo seleccionado</div>
             )}
           </div>
         );
@@ -234,18 +237,18 @@ const EventRender: React.FC = () => {
         return (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Detector de elementos de la escena</h2>
-              <p className="text-stone-500 dark:text-stone-400 text-sm">PHORMARENDER analiza materiales, colores y elementos que describen a la perfección tu escena. Puedes editar el resultado si algo no es fiel.</p>
+              <h2 className={heading}>Detector de elementos de la escena</h2>
+              <p className={`mt-2 ${subheading}`}>PHORMARENDER analiza materiales, colores y elementos que describen a la perfección tu escena. Puedes editar el resultado si algo no es fiel.</p>
             </div>
             <button onClick={handleDetectSceneElements} disabled={isDetectingScene || isLoading}
-              className="w-full py-3 px-5 rounded-lg bg-stone-700 hover:bg-stone-600 text-white font-semibold text-sm transition disabled:opacity-40 disabled:cursor-not-allowed">
+              className={`${btnPrimary} w-full`}>
               {isDetectingScene ? 'Detectando...' : 'Detectar automáticamente'}
             </button>
-            {isDetectingScene && <div className="flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400"><LoadingSpinner /><span>{currentGenerationProgress}</span></div>}
+            {isDetectingScene && <div className="flex items-center gap-2 text-[14px] text-ink-soft"><LoadingSpinner /><span>{currentGenerationProgress}</span></div>}
             <div>
-              <label htmlFor="scene-desc" className="block text-xs font-semibold text-stone-600 dark:text-stone-400 uppercase tracking-wider mb-2">Descripción de la escena</label>
+              <label htmlFor="scene-desc" className={labelClass}>Descripción de la escena</label>
               <textarea id="scene-desc" value={sceneDescription} onChange={(e) => setSceneDescription(e.target.value)} rows={12}
-                className="w-full p-3 rounded-lg bg-white dark:bg-stone-950 border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 text-sm focus:ring-2 focus:ring-stone-400 focus:border-transparent outline-none transition resize-y"
+                className={`mt-2 ${textareaClass}`}
                 placeholder="Edita tu descripción ahora" />
             </div>
           </div>
@@ -255,29 +258,30 @@ const EventRender: React.FC = () => {
         return (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Referencias Visuales <span className="text-stone-400 font-normal text-sm">(Opcional)</span></h2>
-              <p className="text-stone-500 dark:text-stone-400 text-sm">Sube hasta {MAX_REFERENCE_IMAGES} imágenes de elementos específicos en tu escena aislados de su fondo para que podamos detectarlos e integrarlos a tu render.</p>
+              <h2 className={heading}>Referencias Visuales <span className="text-ink-mute">(Opcional)</span></h2>
+              <p className={`mt-2 ${subheading}`}>Sube hasta {MAX_REFERENCE_IMAGES} imágenes de elementos específicos en tu escena aislados de su fondo para que podamos detectarlos e integrarlos a tu render.</p>
             </div>
             <input ref={referenceFileInputRef} type="file" accept="image/*" multiple onChange={handleReferenceImagesChange} className="hidden" disabled={referenceImages.length >= MAX_REFERENCE_IMAGES || isLoading} />
             <button onClick={() => referenceFileInputRef.current?.click()} disabled={referenceImages.length >= MAX_REFERENCE_IMAGES || isLoading}
-              className="w-full py-3 px-5 rounded-lg bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-800 dark:text-stone-200 font-semibold text-sm transition disabled:opacity-40 disabled:cursor-not-allowed">
+              className={`${btnSecondary} w-full`}>
               {referenceImages.length > 0 ? `Añadir más (${referenceImages.length}/${MAX_REFERENCE_IMAGES})` : 'Subir referencias'}
             </button>
             {referenceImagePreviews.length > 0 ? (
               <div className="grid grid-cols-2 gap-3">
                 {referenceImagePreviews.map((p, i) => (
-                  <div key={i} className="relative group border border-stone-200 dark:border-stone-700 rounded-lg overflow-hidden">
-                    <img src={p.url} alt={`Ref ${i}`} className="w-full h-28 object-cover" />
+                  <div key={i} className="group relative overflow-hidden rounded-3xl bg-white">
+                    <img src={p.url} alt={`Ref ${i}`} className="h-28 w-full object-cover" />
                     <button onClick={() => handleRemoveReferenceImage(p.file)}
-                      className="absolute top-1.5 right-1.5 w-6 h-6 bg-white/90 dark:bg-stone-800/90 text-stone-700 dark:text-stone-300 rounded-full text-xs opacity-0 group-hover:opacity-100 transition flex items-center justify-center shadow-sm">
+                      aria-label="Quitar referencia"
+                      className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-ink/85 text-[11px] text-bone opacity-0 transition group-hover:opacity-100">
                       ✕
                     </button>
-                    <p className="text-xs text-stone-500 dark:text-stone-400 px-2 py-1 truncate bg-stone-50 dark:bg-stone-900/60">{p.file.name}</p>
+                    <p className="truncate px-3 py-2 text-[12px] text-ink-mute">{p.file.name}</p>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="border-2 border-dashed border-stone-300 dark:border-stone-700 rounded-lg p-8 text-center text-stone-400 dark:text-stone-600 text-sm">Sin referencias añadidas</div>
+              <div className={emptyBox}>Sin referencias añadidas</div>
             )}
           </div>
         );
@@ -286,13 +290,13 @@ const EventRender: React.FC = () => {
         return (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Configurar Iluminación</h2>
-              <p className="text-stone-500 dark:text-stone-400 text-sm">Define el horario específico que quieres aplicar a tu escena. Puedes guardar o cargar tus configuraciones de iluminación para usarlas en otros proyectos.</p>
+              <h2 className={heading}>Configurar Iluminación</h2>
+              <p className={`mt-2 ${subheading}`}>Define el horario específico que quieres aplicar a tu escena. Puedes guardar o cargar tus configuraciones de iluminación para usarlas en otros proyectos.</p>
             </div>
             <div className="flex gap-2">
               <input ref={lightingConfigFileInputRef} type="file" accept=".json" onChange={handleLoadLightingConfig} className="hidden" />
-              <button onClick={() => lightingConfigFileInputRef.current?.click()} className="flex-1 py-2 px-4 bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-800 dark:text-stone-200 text-sm font-medium rounded-lg transition">Cargar .json</button>
-              <button onClick={handleSaveLightingConfig} className="flex-1 py-2 px-4 bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-800 dark:text-stone-200 text-sm font-medium rounded-lg transition">Guardar .json</button>
+              <button onClick={() => lightingConfigFileInputRef.current?.click()} className={`${btnSoft} flex-1 px-4 py-2.5`}>Cargar .json</button>
+              <button onClick={handleSaveLightingConfig} className={`${btnSoft} flex-1 px-4 py-2.5`}>Guardar .json</button>
             </div>
             {([
               { id: 'lt', label: 'Tipo de iluminación', value: lightingType, set: (v: string) => setLightingType(v as LightingType), opts: [
@@ -314,20 +318,20 @@ const EventRender: React.FC = () => {
               ]},
             ] as const).map(({ id, label, value, set, opts }) => (
               <div key={id}>
-                <label htmlFor={id} className="block text-xs font-semibold text-stone-600 dark:text-stone-400 uppercase tracking-wider mb-1.5">{label}</label>
+                <label htmlFor={id} className={labelClass}>{label}</label>
                 <select id={id} value={value} onChange={(e) => set(e.target.value)} disabled={isLoading}
-                  className="w-full p-2.5 rounded-lg bg-white dark:bg-stone-950 border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 text-sm focus:ring-2 focus:ring-stone-400 outline-none transition disabled:opacity-40">
+                  className={`mt-2 ${selectClass}`}>
                   {opts.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               </div>
             ))}
             <div>
-              <label htmlFor="adv-light" className="block text-xs font-semibold text-stone-600 dark:text-stone-400 uppercase tracking-wider mb-1.5">
-                Instrucciones avanzadas <span className="normal-case font-normal text-stone-400">(opcional)</span>
+              <label htmlFor="adv-light" className={labelClass}>
+                Instrucciones avanzadas <span className="font-normal normal-case tracking-normal">(opcional)</span>
               </label>
               <textarea id="adv-light" value={advancedLightingInstructions} onChange={(e) => setAdvancedLightingInstructions(e.target.value)}
                 rows={3} disabled={isLoading}
-                className="w-full p-2.5 rounded-lg bg-white dark:bg-stone-950 border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 text-sm focus:ring-2 focus:ring-stone-400 outline-none transition resize-y disabled:opacity-40"
+                className={`mt-2 ${textareaClass}`}
                 placeholder="Ej. Enciende la lámpara de piso y añade luces dicroicas en el techo." />
             </div>
           </div>
@@ -337,43 +341,43 @@ const EventRender: React.FC = () => {
         return (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Generar render</h2>
-              <p className="text-stone-500 dark:text-stone-400 text-sm">Todo listo. Genera tu render ahora.</p>
+              <h2 className={heading}>Generar render</h2>
+              <p className={`mt-2 ${subheading}`}>Todo listo. Genera tu render ahora.</p>
             </div>
             <div>
-              <label htmlFor="render-size" className="block text-xs font-semibold text-stone-600 dark:text-stone-400 uppercase tracking-wider mb-1.5">Resolución</label>
+              <label htmlFor="render-size" className={labelClass}>Resolución</label>
               <select id="render-size" value={renderSize} onChange={(e) => setRenderSize(e.target.value as RenderSize)} disabled={isLoading}
-                className="w-full p-2.5 rounded-lg bg-white dark:bg-stone-950 border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 text-sm focus:ring-2 focus:ring-stone-400 outline-none transition disabled:opacity-40">
+                className={`mt-2 ${selectClass}`}>
                 {RENDER_SIZE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
               {renderSize === '4K' && (
-                <p className="text-xs text-stone-400 mt-1.5">4K duplica aproximadamente el costo por imagen y puede tardar más en generarse.</p>
+                <p className={`mt-2 ${note}`}>4K duplica aproximadamente el costo por imagen y puede tardar más en generarse.</p>
               )}
             </div>
-            <div className="bg-stone-100 dark:bg-stone-800 rounded-lg p-4 space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-stone-500">Escena</span><span className="text-stone-700 dark:text-stone-300 truncate ml-4 max-w-[60%] text-right">{uploadedSketchupScene?.name ?? '—'}</span></div>
-              <div className="flex justify-between"><span className="text-stone-500">Iluminación</span><span className="text-stone-700 dark:text-stone-300 capitalize">{lightingType} · {colorTemperature}</span></div>
-              <div className="flex justify-between"><span className="text-stone-500">Resolución</span><span className="text-stone-700 dark:text-stone-300">{renderSize}</span></div>
-              <div className="flex justify-between"><span className="text-stone-500">Referencias</span><span className="text-stone-700 dark:text-stone-300">{referenceImages.length > 0 ? `${referenceImages.length} imagen${referenceImages.length > 1 ? 'es' : ''}` : 'Ninguna'}</span></div>
-            </div>
+            <dl className={`${summaryBox} space-y-3 text-[14px]`}>
+              <div className="flex justify-between gap-4"><dt className="text-ink-mute">Escena</dt><dd className="max-w-[60%] truncate text-right text-ink">{uploadedSketchupScene?.name ?? '—'}</dd></div>
+              <div className="flex justify-between gap-4"><dt className="text-ink-mute">Iluminación</dt><dd className="capitalize text-ink">{lightingType} · {colorTemperature}</dd></div>
+              <div className="flex justify-between gap-4"><dt className="text-ink-mute">Resolución</dt><dd className="text-ink">{renderSize}</dd></div>
+              <div className="flex justify-between gap-4"><dt className="text-ink-mute">Referencias</dt><dd className="text-ink">{referenceImages.length > 0 ? `${referenceImages.length} imagen${referenceImages.length > 1 ? 'es' : ''}` : 'Ninguna'}</dd></div>
+            </dl>
             <button onClick={handleGenerateRender} disabled={isLoading || !uploadedSketchupScene || !sceneDescription.trim()}
-              className="w-full py-4 rounded-lg bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 text-base font-bold hover:bg-stone-700 dark:hover:bg-stone-300 transition disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 dark:disabled:bg-stone-700 dark:disabled:text-stone-500">
+              className={`${btnPrimary} w-full py-4`}>
               {isLoading ? 'Generando render...' : 'Generar render'}
             </button>
             {isLoading && currentGenerationProgress && (
-              <div className="flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400"><LoadingSpinner /><span>{currentGenerationProgress}</span></div>
+              <div className="flex items-center gap-2 text-[14px] text-ink-soft"><LoadingSpinner /><span>{currentGenerationProgress}</span></div>
             )}
             {generatedRender?.error && (
-              <p className="text-red-700 dark:text-red-300 text-sm bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg p-3">{generatedRender.error}</p>
+              <p className={alertError}>{generatedRender.error}</p>
             )}
             {generatedRender?.url && (
-              <div className="space-y-2 pt-2 border-t border-stone-200 dark:border-stone-700">
-                <p className="text-xs text-stone-400">*Las imágenes generadas por IA pueden contener imperfecciones.</p>
+              <div className="space-y-3 border-t border-line pt-5">
+                <p className={note}>*Las imágenes generadas por IA pueden contener imperfecciones.</p>
                 <div className="flex gap-2">
-                  <button onClick={handleDownloadImage} className="flex-1 py-2.5 px-4 bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-800 dark:text-stone-200 text-sm font-semibold rounded-lg transition">Descargar</button>
-                  <button onClick={handleSaveLightingConfig} className="flex-1 py-2.5 px-4 bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-800 dark:text-stone-200 text-sm font-semibold rounded-lg transition">Guardar iluminación</button>
+                  <button onClick={handleDownloadImage} className={`${btnSoft} flex-1 px-4 py-3`}>Descargar</button>
+                  <button onClick={handleSaveLightingConfig} className={`${btnSoft} flex-1 px-4 py-3`}>Guardar iluminación</button>
                 </div>
-                <button onClick={handleStartNewScene} className="w-full py-2.5 bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200 text-sm font-semibold rounded-lg transition">Nueva escena</button>
+                <button onClick={handleStartNewScene} className={`${btnSecondary} w-full py-3`}>Nueva escena</button>
               </div>
             )}
           </div>
@@ -388,13 +392,13 @@ const EventRender: React.FC = () => {
   const previewSrc = showRender && hasRender ? generatedRender!.url! : sketchupScenePreview;
 
   return (
-    <div className="flex overflow-hidden" style={{ height: 'calc(100vh - 61px)' }}>
+    <div className="flex min-h-0 flex-1 overflow-hidden">
 
-      {/* ── Left: step wizard ────────────────────────────── */}
-      <div className="flex-1 h-full flex flex-col bg-stone-50 dark:bg-stone-900">
+      {/* ── Izquierda: asistente por pasos ────────────────── */}
+      <div className="flex h-full flex-1 flex-col bg-bone">
 
-        {/* Step indicators */}
-        <div className="shrink-0 flex items-center px-6 py-4 border-b border-stone-200 dark:border-stone-800 gap-0">
+        {/* Indicador de pasos */}
+        <div className="flex shrink-0 items-center gap-0 border-b border-line px-6 py-5 sm:px-8">
           {STEPS.map((step, i) => {
             const active = currentStep === step.id;
             const completed = stepCompleted(step.id);
@@ -406,21 +410,21 @@ const EventRender: React.FC = () => {
                   disabled={!accessible}
                   className={`flex flex-col items-center gap-1.5 ${accessible ? 'cursor-pointer' : 'cursor-not-allowed opacity-40'}`}
                 >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border transition-colors ${
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-full border text-[12px] font-bold transition-colors ${
                     active
-                      ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 border-stone-800 dark:border-stone-200'
+                      ? 'border-ink bg-ink text-bone'
                       : completed && accessible
-                        ? 'bg-stone-500 text-white border-stone-500'
-                        : 'bg-transparent text-stone-300 dark:text-stone-600 border-stone-300 dark:border-stone-600'
+                        ? 'border-ink-soft bg-ink-soft text-bone'
+                        : 'border-line bg-transparent text-ink-mute'
                   }`}>
                     {completed && !active ? '✓' : step.id}
                   </div>
-                  <span className={`text-xs transition-colors ${active ? 'text-stone-900 dark:text-stone-100 font-medium' : 'text-stone-400'}`}>
+                  <span className={`text-[11px] font-medium uppercase tracking-[0.1em] transition-colors ${active ? 'text-ink' : 'text-ink-mute'}`}>
                     {step.label}
                   </span>
                 </button>
                 {i < STEPS.length - 1 && (
-                  <div className={`flex-1 h-px mx-2 mb-5 transition-colors ${stepCompleted(step.id) && stepAccessible(step.id + 1) ? 'bg-stone-400' : 'bg-stone-200 dark:bg-stone-700'}`} />
+                  <div className={`mx-2 mb-5 h-px flex-1 transition-colors ${stepCompleted(step.id) && stepAccessible(step.id + 1) ? 'bg-ink-mute' : 'bg-line'}`} />
                 )}
               </React.Fragment>
             );
@@ -429,32 +433,32 @@ const EventRender: React.FC = () => {
 
         {/* Error banner */}
         {error && (
-          <div className="mx-6 mt-4 shrink-0 p-3 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm flex items-start justify-between gap-2">
+          <div className={`mx-6 mt-5 flex shrink-0 items-start justify-between gap-2 sm:mx-8 ${alertError}`}>
             <span>{error}</span>
-            <button onClick={() => setError(null)} className="text-red-400 hover:text-red-700 dark:hover:text-red-200 transition shrink-0">✕</button>
+            <button onClick={() => setError(null)} aria-label="Cerrar aviso" className="shrink-0 text-red-400 transition hover:text-red-800">✕</button>
           </div>
         )}
 
         {/* Step content — scrollable */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
-          {renderStep()}
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-7 sm:px-8">
+          <div className="mx-auto max-w-xl space-y-5">{renderStep()}</div>
         </div>
 
         {/* Navigation */}
-        <div className="shrink-0 px-6 py-4 border-t border-stone-200 dark:border-stone-800 flex items-center justify-between">
+        <div className="flex shrink-0 items-center justify-between border-t border-line px-6 py-4 sm:px-8">
           <button
             onClick={() => setCurrentStep(s => Math.max(1, s - 1))}
             disabled={currentStep === 1}
-            className="py-2 px-5 text-sm font-medium text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition disabled:opacity-30 disabled:cursor-not-allowed"
+            className={btnGhost}
           >
             ← Anterior
           </button>
-          <span className="text-xs text-stone-400">{currentStep} / {STEPS.length}</span>
+          <span className="text-[12px] uppercase tracking-[0.1em] text-ink-mute">{currentStep} / {STEPS.length}</span>
           {currentStep < 5 ? (
             <button
               onClick={() => setCurrentStep(s => Math.min(5, s + 1))}
               disabled={!canAdvance()}
-              className="py-2 px-5 bg-stone-800 dark:bg-stone-200 hover:bg-stone-700 dark:hover:bg-stone-300 text-white dark:text-stone-900 text-sm font-semibold rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
+              className={`${btnPrimary} px-6 py-3`}
             >
               Siguiente →
             </button>
@@ -465,7 +469,7 @@ const EventRender: React.FC = () => {
       </div>
 
       {/* ── Right: image preview ─────────────────────────── */}
-      <div className="w-[40%] h-full flex flex-col border-l border-stone-200 dark:border-stone-800 bg-stone-100 dark:bg-stone-950">
+      <div className="flex h-full w-[40%] flex-col border-l border-line bg-sand">
 
         {/* Preview area */}
         <div className="flex-1 min-h-0 flex items-center justify-center p-6">
@@ -473,17 +477,17 @@ const EventRender: React.FC = () => {
             <img
               src={previewSrc}
               alt={showRender ? 'Render generado' : 'Escena de tu modelo 3D'}
-              className="max-w-full max-h-full object-contain rounded-lg shadow-sm"
+              className="max-h-full max-w-full rounded-3xl object-contain"
             />
           ) : (
             <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-stone-200 dark:bg-stone-800 flex items-center justify-center mx-auto mb-4">
-                <svg className="w-7 h-7 text-stone-400 dark:text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-sand-deep">
+                <svg className="h-7 w-7 text-ink-mute" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                     d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
-              <p className="text-stone-400 dark:text-stone-600 text-sm">Tu escena aparecerá aquí</p>
+              <p className="text-[14px] text-ink-mute">Tu escena aparecerá aquí</p>
             </div>
           )}
         </div>
@@ -491,17 +495,11 @@ const EventRender: React.FC = () => {
         {/* Toggle bar — only visible when both images exist */}
         {hasRender && sketchupScenePreview && (
           <div className="shrink-0 px-6 pb-5">
-            <div className="flex items-center bg-stone-200 dark:bg-stone-800 rounded-lg p-1 gap-1">
-              <button
-                onClick={() => setShowRender(false)}
-                className={`flex-1 py-2 text-xs font-semibold rounded-md transition ${!showRender ? 'bg-white dark:bg-stone-600 text-stone-900 dark:text-white shadow-sm' : 'text-stone-500 hover:text-stone-700 dark:hover:text-stone-200'}`}
-              >
+            <div className={toggleGroup}>
+              <button onClick={() => setShowRender(false)} className={toggleOption(!showRender)}>
                 Original
               </button>
-              <button
-                onClick={() => setShowRender(true)}
-                className={`flex-1 py-2 text-xs font-semibold rounded-md transition ${showRender ? 'bg-white dark:bg-stone-600 text-stone-900 dark:text-white shadow-sm' : 'text-stone-500 hover:text-stone-700 dark:hover:text-stone-200'}`}
-              >
+              <button onClick={() => setShowRender(true)} className={toggleOption(showRender)}>
                 Render
               </button>
             </div>

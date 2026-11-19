@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { listRenders, listVideoRenders, type RenderItem } from '../services/apiService';
 import type { VideoRenderItem } from '../types';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { alertError, emptyBox, note, toggleGroup, toggleOption } from '../components/ui';
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleString('es', { dateStyle: 'medium', timeStyle: 'short' });
@@ -23,96 +24,103 @@ const History: React.FC = () => {
   const error = tab === 'images' ? imagesError : videosError;
 
   return (
-    <div className="max-w-6xl mx-auto w-full px-6 py-8">
-      <h1 className="text-xl font-bold text-stone-900 dark:text-stone-100 mb-1">Historial</h1>
-      <p className="text-sm text-stone-500 dark:text-stone-400 mb-6">Tus renders y videos generados, más recientes primero.</p>
+    <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="mx-auto w-full max-w-[1180px] px-5 py-12 sm:px-8 sm:py-16">
+        <h1 className="font-display text-[2rem] font-bold leading-[1.05] tracking-[-0.03em] text-ink sm:text-4xl">
+          Historial
+          <br />
+          <span className="text-ink-mute">y privacidad</span>
+        </h1>
+        <p className="mt-4 max-w-xl text-[15px] leading-relaxed text-ink-soft">
+          Tus renders y recorridos quedan disponibles hasta por 7 días, más recientes primero.
+          Solo tú los ves.
+        </p>
 
-      <div className="flex items-center bg-stone-200 dark:bg-stone-800 rounded-lg p-1 gap-1 mb-6 max-w-xs">
-        <button
-          onClick={() => setTab('images')}
-          className={`flex-1 py-2 text-xs font-semibold rounded-md transition ${tab === 'images' ? 'bg-white dark:bg-stone-600 text-stone-900 dark:text-white shadow-sm' : 'text-stone-500 hover:text-stone-700 dark:hover:text-stone-200'}`}
-        >
-          Imágenes ({images.length})
-        </button>
-        <button
-          onClick={() => setTab('videos')}
-          className={`flex-1 py-2 text-xs font-semibold rounded-md transition ${tab === 'videos' ? 'bg-white dark:bg-stone-600 text-stone-900 dark:text-white shadow-sm' : 'text-stone-500 hover:text-stone-700 dark:hover:text-stone-200'}`}
-        >
-          Videos ({videos.length})
-        </button>
+        <div className={`mt-8 max-w-xs ${toggleGroup}`}>
+          <button onClick={() => setTab('images')} className={toggleOption(tab === 'images')}>
+            Imágenes ({images.length})
+          </button>
+          <button onClick={() => setTab('videos')} className={toggleOption(tab === 'videos')}>
+            Recorridos ({videos.length})
+          </button>
+        </div>
+
+        <div className="mt-8">
+          {loading && (
+            <div className="flex items-center gap-2 text-[14px] text-ink-soft">
+              <LoadingSpinner />
+              <span>Cargando...</span>
+            </div>
+          )}
+
+          {error && <p className={alertError}>{error}</p>}
+
+          {tab === 'images' && !loading && !error && images.length === 0 && (
+            <div className={`${emptyBox} py-16`}>Aún no has generado ningún render.</div>
+          )}
+
+          {tab === 'images' && images.length > 0 && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {images.map((item) => (
+                <div key={item.id} className="overflow-hidden rounded-4xl bg-sand">
+                  {item.url ? (
+                    <a href={item.url} target="_blank" rel="noreferrer">
+                      <img src={item.url} alt="Render" className="aspect-video w-full object-cover" />
+                    </a>
+                  ) : (
+                    <div className="flex aspect-video w-full items-center justify-center bg-sand-deep text-[13px] text-ink-mute">
+                      Imagen no disponible
+                    </div>
+                  )}
+                  <div className="space-y-1.5 p-5">
+                    <p className="text-[12px] uppercase tracking-[0.1em] text-ink-mute">
+                      {formatDate(item.created_at)}
+                    </p>
+                    <p className="text-[14px] capitalize text-ink">
+                      {item.lighting_type ?? '—'} · {item.color_temperature ?? '—'}
+                    </p>
+                    {item.scene_description && (
+                      <p className={`line-clamp-2 ${note}`}>{item.scene_description}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {tab === 'videos' && !loading && !error && videos.length === 0 && (
+            <div className={`${emptyBox} py-16`}>Aún no has generado ningún recorrido.</div>
+          )}
+
+          {tab === 'videos' && videos.length > 0 && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {videos.map((item) => (
+                <div key={item.id} className="overflow-hidden rounded-4xl bg-sand">
+                  {item.url ? (
+                    <video src={item.url} controls className="aspect-video w-full bg-ink object-cover" />
+                  ) : (
+                    <div className="flex aspect-video w-full items-center justify-center bg-sand-deep text-[13px] text-ink-mute">
+                      Video no disponible
+                    </div>
+                  )}
+                  <div className="space-y-1.5 p-5">
+                    <p className="text-[12px] uppercase tracking-[0.1em] text-ink-mute">
+                      {formatDate(item.created_at)}
+                    </p>
+                    <p className="text-[14px] capitalize text-ink">
+                      {item.camera_movement?.replace('_', ' ') ?? '—'} · {item.duration_seconds ?? '—'}s ·{' '}
+                      {item.resolution ?? '1080p'}
+                    </p>
+                    {item.start_description && (
+                      <p className={`line-clamp-2 ${note}`}>{item.start_description}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
-
-      {loading && (
-        <div className="flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400"><LoadingSpinner /><span>Cargando...</span></div>
-      )}
-
-      {error && (
-        <p className="text-red-700 dark:text-red-300 text-sm bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg p-3">{error}</p>
-      )}
-
-      {tab === 'images' && !loading && !error && images.length === 0 && (
-        <div className="border-2 border-dashed border-stone-300 dark:border-stone-700 rounded-lg p-12 text-center text-stone-400 dark:text-stone-600 text-sm">
-          Aún no has generado ningún render.
-        </div>
-      )}
-
-      {tab === 'images' && images.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {images.map((item) => (
-            <div key={item.id} className="border border-stone-200 dark:border-stone-800 rounded-xl overflow-hidden bg-white dark:bg-stone-900">
-              {item.url ? (
-                <a href={item.url} target="_blank" rel="noreferrer">
-                  <img src={item.url} alt="Render" className="w-full aspect-video object-cover" />
-                </a>
-              ) : (
-                <div className="w-full aspect-video flex items-center justify-center bg-stone-100 dark:bg-stone-800 text-stone-400 text-xs">
-                  Imagen no disponible
-                </div>
-              )}
-              <div className="p-3 space-y-1">
-                <p className="text-xs text-stone-400">{formatDate(item.created_at)}</p>
-                <p className="text-sm text-stone-700 dark:text-stone-300 capitalize">
-                  {item.lighting_type ?? '—'} · {item.color_temperature ?? '—'}
-                </p>
-                {item.scene_description && (
-                  <p className="text-xs text-stone-500 dark:text-stone-400 line-clamp-2">{item.scene_description}</p>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {tab === 'videos' && !loading && !error && videos.length === 0 && (
-        <div className="border-2 border-dashed border-stone-300 dark:border-stone-700 rounded-lg p-12 text-center text-stone-400 dark:text-stone-600 text-sm">
-          Aún no has generado ningún video.
-        </div>
-      )}
-
-      {tab === 'videos' && videos.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {videos.map((item) => (
-            <div key={item.id} className="border border-stone-200 dark:border-stone-800 rounded-xl overflow-hidden bg-white dark:bg-stone-900">
-              {item.url ? (
-                <video src={item.url} controls className="w-full aspect-video object-cover bg-black" />
-              ) : (
-                <div className="w-full aspect-video flex items-center justify-center bg-stone-100 dark:bg-stone-800 text-stone-400 text-xs">
-                  Video no disponible
-                </div>
-              )}
-              <div className="p-3 space-y-1">
-                <p className="text-xs text-stone-400">{formatDate(item.created_at)}</p>
-                <p className="text-sm text-stone-700 dark:text-stone-300 capitalize">
-                  {item.camera_movement?.replace('_', ' ') ?? '—'} · {item.duration_seconds ?? '—'}s · {item.resolution ?? '1080p'}
-                </p>
-                {item.start_description && (
-                  <p className="text-xs text-stone-500 dark:text-stone-400 line-clamp-2">{item.start_description}</p>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 };

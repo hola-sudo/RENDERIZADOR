@@ -56,7 +56,7 @@ const Login: React.FC = () => {
             </span>
             <span className="font-display text-lg font-bold tracking-tight text-ink">
               {brand.name}
-              <span className="font-normal text-ink-mute"> {brand.nameAccent}</span>
+              <span className="font-normal text-ink-mute">{brand.nameAccent}</span>
             </span>
           </Link>
           <Link
@@ -80,8 +80,8 @@ const Login: React.FC = () => {
           </h1>
           <p className="mt-4 text-[15px] leading-relaxed text-ink-soft">
             {mode === 'signin'
-              ? 'Accede a tus renders, videos e historial.'
-              : 'Regístrate para empezar a generar renders de tus eventos.'}
+              ? 'Accede a tus renders, recorridos e historial.'
+              : 'Regístrate para transformar tu primer modelo 3D en un render fotorrealista.'}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-9 rounded-5xl bg-sand p-7 sm:p-9">

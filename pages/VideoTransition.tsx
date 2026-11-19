@@ -2,6 +2,11 @@ import React, { useState, useCallback, useRef } from 'react';
 import { detectSceneElements, startVideoTransition, pollVideoUntilDone } from '../services/apiService';
 import { downloadFromUrl } from '../services/download';
 import LoadingSpinner from '../components/LoadingSpinner';
+import {
+  alertError, btnGhost, btnPrimary, btnSecondary, btnSoft, heading,
+  label as labelClass, note, select as selectClass, subheading, summaryBox,
+  textarea as textareaClass,
+} from '../components/ui';
 import { CAMERA_MOVEMENT_OPTIONS, type CameraMovement } from '../types';
 
 const STEPS = [
@@ -159,23 +164,23 @@ const VideoTransition: React.FC = () => {
     const label = which === 'start' ? 'Start Frame' : 'End Frame';
     return (
       <div className="space-y-2">
-        <label className="block text-xs font-semibold text-stone-600 dark:text-stone-400 uppercase tracking-wider">{label}</label>
+        <label className={labelClass}>{label}</label>
         <input ref={ref} type="file" accept="image/*" onChange={handleFrameChange(which)} className="hidden" disabled={isLoading} />
         {preview ? (
-          <div className="relative group border border-stone-200 dark:border-stone-700 rounded-lg overflow-hidden">
-            <img src={preview} alt={label} className="w-full h-40 object-cover" />
+          <div className="group relative overflow-hidden rounded-3xl bg-white">
+            <img src={preview} alt={label} className="h-40 w-full object-cover" />
             <button onClick={() => ref.current?.click()} disabled={isLoading}
-              className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition flex items-center justify-center opacity-0 group-hover:opacity-100 text-white text-sm font-semibold">
+              className="absolute inset-0 flex items-center justify-center bg-ink/0 text-[12px] font-semibold uppercase tracking-[0.12em] text-bone opacity-0 transition group-hover:bg-ink/50 group-hover:opacity-100">
               Cambiar
             </button>
           </div>
         ) : (
           <button onClick={() => ref.current?.click()} disabled={isLoading}
-            className="w-full h-40 border-2 border-dashed border-stone-300 dark:border-stone-700 rounded-lg flex items-center justify-center text-stone-400 dark:text-stone-600 text-sm hover:border-stone-400 dark:hover:border-stone-600 transition disabled:opacity-40">
+            className="flex h-40 w-full items-center justify-center rounded-3xl border border-dashed border-line bg-white/50 text-[14px] text-ink-mute transition hover:border-ink disabled:opacity-40">
             Seleccionar archivo
           </button>
         )}
-        {file && <p className="text-xs text-stone-400 truncate">{file.name}</p>}
+        {file && <p className={`truncate ${note}`}>{file.name}</p>}
       </div>
     );
   };
@@ -186,15 +191,15 @@ const VideoTransition: React.FC = () => {
         return (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Sube el Start Frame y el End Frame</h2>
-              <p className="text-stone-500 dark:text-stone-400 text-sm">Sube dos imágenes de render donde se aprecien los mismos objetos de tu escena. Nuestro modelo analizará la geometría y generará un recorrido virtual fluido que conecte ambas tomas.</p>
+              <h2 className={heading}>Sube el Start Frame y el End Frame</h2>
+              <p className={`mt-2 ${subheading}`}>Sube dos imágenes de render donde se aprecien los mismos objetos de tu escena. Nuestro modelo analizará la geometría y generará un recorrido virtual fluido que conecte ambas tomas.</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               {renderFrameSlot('start')}
               {renderFrameSlot('end')}
             </div>
             {isLoading && progress.startsWith('Optimizando') && (
-              <div className="flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400"><LoadingSpinner /><span>{progress}</span></div>
+              <div className="flex items-center gap-2 text-[14px] text-ink-soft"><LoadingSpinner /><span>{progress}</span></div>
             )}
           </div>
         );
@@ -203,18 +208,18 @@ const VideoTransition: React.FC = () => {
         return (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Descripción de materiales</h2>
-              <p className="text-stone-500 dark:text-stone-400 text-sm">PHORMARENDER analiza los frames y describe los materiales y composición de la escena. Corrígelo ahora.</p>
+              <h2 className={heading}>Descripción de materiales</h2>
+              <p className={`mt-2 ${subheading}`}>PHORMARENDER analiza los frames y describe los materiales y composición de la escena. Corrígelo ahora.</p>
             </div>
             <button onClick={handleDetect} disabled={isDetecting || isLoading}
-              className="w-full py-3 px-5 rounded-lg bg-stone-700 hover:bg-stone-600 text-white font-semibold text-sm transition disabled:opacity-40 disabled:cursor-not-allowed">
+              className={`${btnPrimary} w-full`}>
               {isDetecting ? 'Detectando...' : 'Detectar automáticamente'}
             </button>
-            {isDetecting && <div className="flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400"><LoadingSpinner /><span>{progress}</span></div>}
+            {isDetecting && <div className="flex items-center gap-2 text-[14px] text-ink-soft"><LoadingSpinner /><span>{progress}</span></div>}
             <div>
-              <label htmlFor="scene-desc" className="block text-xs font-semibold text-stone-600 dark:text-stone-400 uppercase tracking-wider mb-2">Descripción de la escena</label>
+              <label htmlFor="scene-desc" className={labelClass}>Descripción de la escena</label>
               <textarea id="scene-desc" value={sceneDescription} onChange={(e) => setSceneDescription(e.target.value)} rows={12}
-                className="w-full p-3 rounded-lg bg-white dark:bg-stone-950 border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 text-sm focus:ring-2 focus:ring-stone-400 focus:border-transparent outline-none transition resize-y"
+                className={`mt-2 ${textareaClass}`}
                 placeholder="La descripción aparecerá aquí, o escríbela manualmente..." />
             </div>
           </div>
@@ -224,13 +229,13 @@ const VideoTransition: React.FC = () => {
         return (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Movimiento de Cámara</h2>
-              <p className="text-stone-500 dark:text-stone-400 text-sm">Elige cómo se mueve la cámara del Start Frame al End Frame.</p>
+              <h2 className={heading}>Movimiento de Cámara</h2>
+              <p className={`mt-2 ${subheading}`}>Elige cómo se mueve la cámara del Start Frame al End Frame.</p>
             </div>
             <div>
-              <label htmlFor="camera-movement" className="block text-xs font-semibold text-stone-600 dark:text-stone-400 uppercase tracking-wider mb-1.5">Movimiento</label>
+              <label htmlFor="camera-movement" className={labelClass}>Movimiento</label>
               <select id="camera-movement" value={cameraMovement} onChange={(e) => setCameraMovement(e.target.value as CameraMovement)} disabled={isLoading}
-                className="w-full p-2.5 rounded-lg bg-white dark:bg-stone-950 border border-stone-300 dark:border-stone-700 text-stone-900 dark:text-stone-100 text-sm focus:ring-2 focus:ring-stone-400 outline-none transition disabled:opacity-40">
+                className={`mt-2 ${selectClass}`}>
                 {CAMERA_MOVEMENT_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </div>
@@ -241,34 +246,34 @@ const VideoTransition: React.FC = () => {
         return (
           <div className="space-y-5">
             <div>
-              <h2 className="text-lg font-semibold text-stone-900 dark:text-stone-100 mb-1">Generar Recorrido Virtual</h2>
-              <p className="text-stone-500 dark:text-stone-400 text-sm">Genera tu escena de 8 segundos en 1080p.</p>
+              <h2 className={heading}>Generar Recorrido Virtual</h2>
+              <p className={`mt-2 ${subheading}`}>Genera tu escena de 8 segundos en 1080p.</p>
             </div>
-            <div className="bg-stone-100 dark:bg-stone-800 rounded-lg p-4 space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-stone-500">Start Frame</span><span className="text-stone-700 dark:text-stone-300 truncate ml-4 max-w-[60%] text-right">{startFrame?.name ?? '—'}</span></div>
-              <div className="flex justify-between"><span className="text-stone-500">End Frame</span><span className="text-stone-700 dark:text-stone-300 truncate ml-4 max-w-[60%] text-right">{endFrame?.name ?? '—'}</span></div>
-              <div className="flex justify-between"><span className="text-stone-500">Movimiento</span><span className="text-stone-700 dark:text-stone-300">{CAMERA_MOVEMENT_OPTIONS.find(o => o.value === cameraMovement)?.label}</span></div>
-              <div className="flex justify-between"><span className="text-stone-500">Resolución</span><span className="text-stone-700 dark:text-stone-300">1080p (1920×1080)</span></div>
-            </div>
+            <dl className={`${summaryBox} space-y-3 text-[14px]`}>
+              <div className="flex justify-between gap-4"><dt className="text-ink-mute">Start Frame</dt><dd className="max-w-[60%] truncate text-right text-ink">{startFrame?.name ?? '—'}</dd></div>
+              <div className="flex justify-between gap-4"><dt className="text-ink-mute">End Frame</dt><dd className="max-w-[60%] truncate text-right text-ink">{endFrame?.name ?? '—'}</dd></div>
+              <div className="flex justify-between gap-4"><dt className="text-ink-mute">Movimiento</dt><dd className="text-right text-ink">{CAMERA_MOVEMENT_OPTIONS.find(o => o.value === cameraMovement)?.label}</dd></div>
+              <div className="flex justify-between gap-4"><dt className="text-ink-mute">Resolución</dt><dd className="text-ink">1080p (1920×1080)</dd></div>
+            </dl>
             <button onClick={handleGenerate} disabled={isLoading || !startFrame || !endFrame}
-              className="w-full py-4 rounded-lg bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 text-base font-bold hover:bg-stone-700 dark:hover:bg-stone-300 transition disabled:opacity-40 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-500 dark:disabled:bg-stone-700 dark:disabled:text-stone-500">
+              className={`${btnPrimary} w-full py-4`}>
               {isLoading ? 'Generando recorrido...' : 'Generar recorrido'}
             </button>
             {isLoading && progress && (
-              <div className="flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400"><LoadingSpinner /><span>{progress}</span></div>
+              <div className="flex items-center gap-2 text-[14px] text-ink-soft"><LoadingSpinner /><span>{progress}</span></div>
             )}
             {!isLoading && error && (
-              <p className="text-red-700 dark:text-red-300 text-sm bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 rounded-lg p-3">{error}</p>
+              <p className={alertError}>{error}</p>
             )}
             {videoUrl && (
-              <div className="space-y-2 pt-2 border-t border-stone-200 dark:border-stone-700">
-                <p className="text-xs text-stone-400">*Los videos generados por IA pueden contener imperfecciones.</p>
+              <div className="space-y-3 border-t border-line pt-5">
+                <p className={note}>*Los videos generados por IA pueden contener imperfecciones.</p>
                 <button onClick={handleDownload} disabled={isDownloading}
-                  className="w-full py-2.5 px-4 bg-stone-200 hover:bg-stone-300 dark:bg-stone-700 dark:hover:bg-stone-600 text-stone-800 dark:text-stone-200 text-sm font-semibold rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed">
+                  className={`${btnSoft} w-full px-4 py-3`}>
                   {isDownloading ? 'Descargando...' : 'Descargar video 1080p'}
                 </button>
 
-                <button onClick={handleStartNew} className="w-full py-2.5 bg-stone-100 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-600 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-200 text-sm font-semibold rounded-lg transition">Nueva transición</button>
+                <button onClick={handleStartNew} className={`${btnSecondary} w-full py-3`}>Nuevo recorrido</button>
               </div>
             )}
           </div>
@@ -279,13 +284,13 @@ const VideoTransition: React.FC = () => {
   };
 
   return (
-    <div className="flex overflow-hidden" style={{ height: 'calc(100vh - 61px)' }}>
+    <div className="flex min-h-0 flex-1 overflow-hidden">
 
-      {/* ── Left: step wizard ────────────────────────────── */}
-      <div className="flex-1 h-full flex flex-col bg-stone-50 dark:bg-stone-900">
+      {/* ── Izquierda: asistente por pasos ────────────────── */}
+      <div className="flex h-full flex-1 flex-col bg-bone">
 
-        {/* Step indicators */}
-        <div className="shrink-0 flex items-center px-6 py-4 border-b border-stone-200 dark:border-stone-800 gap-0">
+        {/* Indicador de pasos */}
+        <div className="flex shrink-0 items-center gap-0 border-b border-line px-6 py-5 sm:px-8">
           {STEPS.map((step, i) => {
             const active = currentStep === step.id;
             const completed = stepCompleted(step.id);
@@ -297,21 +302,21 @@ const VideoTransition: React.FC = () => {
                   disabled={!accessible}
                   className={`flex flex-col items-center gap-1.5 ${accessible ? 'cursor-pointer' : 'cursor-not-allowed opacity-40'}`}
                 >
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border transition-colors ${
+                  <div className={`flex h-9 w-9 items-center justify-center rounded-full border text-[12px] font-bold transition-colors ${
                     active
-                      ? 'bg-stone-800 dark:bg-stone-200 text-white dark:text-stone-900 border-stone-800 dark:border-stone-200'
+                      ? 'border-ink bg-ink text-bone'
                       : completed && accessible
-                        ? 'bg-stone-500 text-white border-stone-500'
-                        : 'bg-transparent text-stone-300 dark:text-stone-600 border-stone-300 dark:border-stone-600'
+                        ? 'border-ink-soft bg-ink-soft text-bone'
+                        : 'border-line bg-transparent text-ink-mute'
                   }`}>
                     {completed && !active ? '✓' : step.id}
                   </div>
-                  <span className={`text-xs transition-colors ${active ? 'text-stone-900 dark:text-stone-100 font-medium' : 'text-stone-400'}`}>
+                  <span className={`text-[11px] font-medium uppercase tracking-[0.1em] transition-colors ${active ? 'text-ink' : 'text-ink-mute'}`}>
                     {step.label}
                   </span>
                 </button>
                 {i < STEPS.length - 1 && (
-                  <div className={`flex-1 h-px mx-2 mb-5 transition-colors ${stepCompleted(step.id) && stepAccessible(step.id + 1) ? 'bg-stone-400' : 'bg-stone-200 dark:bg-stone-700'}`} />
+                  <div className={`mx-2 mb-5 h-px flex-1 transition-colors ${stepCompleted(step.id) && stepAccessible(step.id + 1) ? 'bg-ink-mute' : 'bg-line'}`} />
                 )}
               </React.Fragment>
             );
@@ -320,32 +325,32 @@ const VideoTransition: React.FC = () => {
 
         {/* Error banner (steps 1-3; el paso 4 muestra su propio error inline) */}
         {error && currentStep !== 4 && (
-          <div className="mx-6 mt-4 shrink-0 p-3 bg-red-50 dark:bg-red-950/60 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm flex items-start justify-between gap-2">
+          <div className={`mx-6 mt-5 flex shrink-0 items-start justify-between gap-2 sm:mx-8 ${alertError}`}>
             <span>{error}</span>
-            <button onClick={() => setError(null)} className="text-red-400 hover:text-red-700 dark:hover:text-red-200 transition shrink-0">✕</button>
+            <button onClick={() => setError(null)} aria-label="Cerrar aviso" className="shrink-0 text-red-400 transition hover:text-red-800">✕</button>
           </div>
         )}
 
         {/* Step content — scrollable */}
-        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-5">
-          {renderStep()}
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-7 sm:px-8">
+          <div className="mx-auto max-w-xl space-y-5">{renderStep()}</div>
         </div>
 
         {/* Navigation */}
-        <div className="shrink-0 px-6 py-4 border-t border-stone-200 dark:border-stone-800 flex items-center justify-between">
+        <div className="flex shrink-0 items-center justify-between border-t border-line px-6 py-4 sm:px-8">
           <button
             onClick={() => setCurrentStep(s => Math.max(1, s - 1))}
             disabled={currentStep === 1}
-            className="py-2 px-5 text-sm font-medium text-stone-400 hover:text-stone-700 dark:hover:text-stone-200 transition disabled:opacity-30 disabled:cursor-not-allowed"
+            className={btnGhost}
           >
             ← Anterior
           </button>
-          <span className="text-xs text-stone-400">{currentStep} / {STEPS.length}</span>
+          <span className="text-[12px] uppercase tracking-[0.1em] text-ink-mute">{currentStep} / {STEPS.length}</span>
           {currentStep < 4 ? (
             <button
               onClick={() => setCurrentStep(s => Math.min(4, s + 1))}
               disabled={!canAdvance()}
-              className="py-2 px-5 bg-stone-800 dark:bg-stone-200 hover:bg-stone-700 dark:hover:bg-stone-300 text-white dark:text-stone-900 text-sm font-semibold rounded-lg transition disabled:opacity-40 disabled:cursor-not-allowed"
+              className={`${btnPrimary} px-6 py-3`}
             >
               Siguiente →
             </button>
@@ -356,27 +361,27 @@ const VideoTransition: React.FC = () => {
       </div>
 
       {/* ── Right: preview ───────────────────────────────── */}
-      <div className="w-[40%] h-full flex flex-col border-l border-stone-200 dark:border-stone-800 bg-stone-100 dark:bg-stone-950">
+      <div className="flex h-full w-[40%] flex-col border-l border-line bg-sand">
         <div className="flex-1 min-h-0 flex items-center justify-center p-6">
           {videoUrl ? (
             <div className="w-full space-y-2">
-              <video src={videoUrl} controls autoPlay loop className="max-w-full max-h-full rounded-lg shadow-sm mx-auto" />
-              <p className="text-center text-xs text-stone-400">1080p</p>
+              <video src={videoUrl} controls autoPlay loop className="mx-auto max-h-full max-w-full rounded-3xl" />
+              <p className={`text-center ${note}`}>1080p</p>
             </div>
           ) : startFramePreview || endFramePreview ? (
             <div className="grid grid-cols-1 gap-3 w-full">
-              {startFramePreview && <img src={startFramePreview} alt="Start Frame" className="max-w-full max-h-full object-contain rounded-lg shadow-sm" />}
-              {endFramePreview && <img src={endFramePreview} alt="End Frame" className="max-w-full max-h-full object-contain rounded-lg shadow-sm" />}
+              {startFramePreview && <img src={startFramePreview} alt="Start Frame" className="max-h-full max-w-full rounded-3xl object-contain" />}
+              {endFramePreview && <img src={endFramePreview} alt="End Frame" className="max-h-full max-w-full rounded-3xl object-contain" />}
             </div>
           ) : (
             <div className="text-center">
-              <div className="w-16 h-16 rounded-full bg-stone-200 dark:bg-stone-800 flex items-center justify-center mx-auto mb-4">
-                <svg className="w-7 h-7 text-stone-400 dark:text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-sand-deep">
+                <svg className="h-7 w-7 text-ink-mute" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
                     d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
               </div>
-              <p className="text-stone-400 dark:text-stone-600 text-sm">Tus frames aparecerán aquí</p>
+              <p className="text-[14px] text-ink-mute">Tus frames aparecerán aquí</p>
             </div>
           )}
         </div>

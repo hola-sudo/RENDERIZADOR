@@ -1,26 +1,24 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { btnSecondary } from '../components/ui';
 
-const OtherTool: React.FC = () => {
-  return (
-    <div className="flex flex-col items-center justify-center px-6 min-h-[calc(100vh-57px)]">
-      <p className="text-xs font-semibold tracking-[0.25em] uppercase text-stone-400 mb-4">
-        Próximamente
-      </p>
-      <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight text-center">
-        Other Tool
-      </h1>
-      <p className="text-neutral-400 text-sm text-center max-w-md mb-10 leading-relaxed">
-        Esta herramienta está en desarrollo. Vuelve pronto para descubrir nuevas funcionalidades para tu flujo de trabajo.
-      </p>
-      <Link
-        to="/"
-        className="py-2.5 px-6 bg-neutral-800 text-neutral-300 text-sm font-semibold rounded-lg hover:bg-neutral-700 hover:text-white transition duration-200 border border-neutral-700"
-      >
-        ← Volver al inicio
-      </Link>
-    </div>
-  );
-};
+const OtherTool: React.FC = () => (
+  <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-6 py-20">
+    <span className="inline-flex items-center gap-2 rounded-full bg-sand px-4 py-1.5 text-[13px] font-medium text-ink">
+      <span className="h-1.5 w-1.5 rounded-full bg-ink" />
+      Próximamente
+    </span>
+    <h1 className="mt-6 text-center font-display text-[2.4rem] font-bold leading-[1.05] tracking-[-0.03em] text-ink sm:text-5xl">
+      Nueva herramienta
+    </h1>
+    <p className="mt-5 max-w-md text-center text-[15px] leading-relaxed text-ink-soft">
+      Esta herramienta está en desarrollo. Vuelve pronto para descubrir nuevas funcionalidades
+      para tu flujo de trabajo.
+    </p>
+    <Link to="/app" className={`${btnSecondary} mt-9`}>
+      ← Volver al inicio
+    </Link>
+  </div>
+);
 
 export default OtherTool;
